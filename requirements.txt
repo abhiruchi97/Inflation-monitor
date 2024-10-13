@@ -1,6 +1,6 @@
-beautifulsoup4
-numpy
+beautifulsoup4==4.12.3
+numpy==1.24.3
 pandas==2.0.1
-plotly
-Requests
-streamlit
+plotly==5.18.0
+Requests==2.32.3
+streamlit==1.39.0
