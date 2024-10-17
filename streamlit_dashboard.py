@@ -271,7 +271,7 @@ with tab2:
             color='deviation',
             hover_name='state',
             hover_data=['actual', 'normal'],
-            color_continuous_scale='Blues',
+            color_continuous_scale='Geyser_r',
             range_color=[-100, 100],
             title='Rainfall Deviation from Normal'
         )
