@@ -1,7 +1,18 @@
+beautifulsoup4==4.11.1
 dash==2.18.1
-pandas==2.2.2
-numpy==1.26.4
+Flask_Caching
+numpy==1.23.2
+pandas==1.5.3
 plotly==5.24.1
-gunicorn
+Requests==2.32.3
+streamlit==1.39.0
 openpyxl
-flask_caching
+
+# beautifulsoup4==4.11.1
+# dash==2.18.1
+# Flask_Caching
+# numpy==1.26.4
+# pandas==2.2.2
+# plotly==5.24.1
+# Requests==2.32.3
+# streamlit==1.39.0
