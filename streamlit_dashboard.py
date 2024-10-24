@@ -12,6 +12,9 @@ from typing import Tuple, Optional
 from dataclasses import dataclass
 from typing import Dict, List
 
+# Suppress SSL warnings
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
 def wide_space_default():
     st.set_page_config(layout='wide')
 
