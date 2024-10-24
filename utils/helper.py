@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 import streamlit as st
+import urllib3
 import json
 import requests
 from bs4 import BeautifulSoup
@@ -12,6 +13,9 @@ from utils.helper import *
 from typing import Tuple, Optional
 from dataclasses import dataclass
 from typing import Dict, List
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+
 
 @st.cache_data
 def load_dca_data():
@@ -192,6 +196,21 @@ def custom_metric(label, current, previous):
 # Arrival data - Wholesale prices and Arrivals
 # Function to fetch data from UPAG through API calls and generating sorted dataframe
 
+
+
+
+def create_session():
+    """Create a session with retry strategy"""
+    session = requests.Session()
+    retry_strategy = Retry(
+        total=3,  # number of retries
+        backoff_factor=1,
+        status_forcelist=[500, 502, 503, 504]
+    )
+    adapter = HTTPAdapter(max_retries=retry_strategy)
+    session.mount("https://", adapter)
+    return session
+
 def fetch_price_data(commodity_id, month_from=None, year_from=None, month_to=None, year_to=None):
     url = "https://dash.upag.gov.in/_dash-update-component"
     
@@ -204,7 +223,6 @@ def fetch_price_data(commodity_id, month_from=None, year_from=None, month_to=Non
         "Referer": "https://dash.upag.gov.in/pricesmonthcomparison?t=&stateID=0&rtab=Analytics&rtype=dashboards",
     }
     
-    # Base payload structure
     payload = {
         "output": "..prices-graph-mixed.figure...prices-graph-source.children..",
         "outputs": [
@@ -245,13 +263,22 @@ def fetch_price_data(commodity_id, month_from=None, year_from=None, month_to=Non
         ]
     }
     
+    session = create_session()
     try:
-        response = requests.post(url, headers=headers, json=payload, verify = False)
-        response.raise_for_status()  # Raise an exception for bad status codes
+        response = session.post(
+            url,
+            headers=headers,
+            json=payload,
+            verify=False,
+            timeout=30
+        )
+        response.raise_for_status()
         return response.json()
     except requests.exceptions.RequestException as e:
         print(f"Error making request: {e}")
         return None
+    finally:
+        session.close()
 
 @dataclass
 class CommodityResponse:
