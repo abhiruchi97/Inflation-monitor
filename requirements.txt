@@ -7,6 +7,7 @@ plotly==5.24.1
 Requests==2.32.3
 streamlit==1.39.0
 openpyxl
+urllib3
 
 # beautifulsoup4==4.11.1
 # dash==2.18.1
