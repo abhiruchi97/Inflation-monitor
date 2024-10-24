@@ -7,156 +7,23 @@ import requests
 from bs4 import BeautifulSoup
 import re
 from functools import lru_cache
+from utils.helper import *
+from typing import Tuple, Optional
+from dataclasses import dataclass
+from typing import Dict, List
 
 def wide_space_default():
     st.set_page_config(layout='wide')
 
 wide_space_default()
 
-# Load and preprocess DCA data (Cached function)
-@st.cache_data
-def load_dca_data():
-    df = pd.read_excel('dca_data.xlsx', sheet_name="State_Consolidated_TimeSeries").iloc[54:76, 1:].T.reset_index()
-    cols = df.iloc[0, 1:]
-    index = df.iloc[1:, 0]
-    df = df.iloc[1:, 1:]
-    df.columns = cols
-    df.index = index
-    df = df.dropna()
-    df.index = pd.to_datetime(df.index)
-    df = df[~df.index.weekday.isin([5, 6])]
-    df = df.resample("W-FRI").mean()
-
-    df_long = df.reset_index().melt(
-        id_vars=['index'],
-        value_vars=['Rice', 'Wheat', 'Atta(wheat)', 'Gram Dal', 'Tur/Arhar Dal', 'Urad Dal',
-                    'Moong Dal', 'Masoor Dal', 'Ground Nut Oil', 'Mustard Oil', 'Vanaspati',
-                    'Soya Oil', 'Sunflower Oil', 'Palm Oil', 'Potato', 'Onion', 'Tomato',
-                    'Sugar', 'Gur', 'Milk', 'Tea', 'Salt'],
-        var_name='Commodity',
-        value_name='Price'
-    )
-
-    df_long = df_long.rename(columns={'index': 'Date'})
-    df_long = df_long.sort_values(['Date', 'Commodity']).reset_index(drop=True)
-    df_long['Date'] = pd.to_datetime(df_long['Date'])
-
-    return df_long
-
-# Load and preprocess production data (Cached function)
-@st.cache_data
-def load_production_data():
-    agri_prod = pd.read_excel('dca_data.xlsx', sheet_name='test')
-    agri_prod['Crop'] = agri_prod['Crop'].fillna(method='ffill')
-    
-    # Convert the Year columns to a consistent format
-    agri_prod.columns = [str(int(col.split('-')[0]) + 1) if isinstance(col, str) and '-' in col else col for col in agri_prod.columns]
-    
-    # Convert to long format, including the totals
-    agri_prod_long = pd.melt(agri_prod,
-                             id_vars=['Crop', 'Season'],
-                             var_name='Year',
-                             value_name='Value')
-    
-    # Convert Year column to numeric
-    agri_prod_long['Year'] = pd.to_numeric(agri_prod_long['Year'].apply(lambda x: x[:2] + x[-2:]))
-    
-    return agri_prod_long
-
-# Load and preprocess horticulture data
-@st.cache_data
-def load_horticulture_data():
-    horti_df = pd.read_excel('dca_data.xlsx', sheet_name='horti', header=[0, 1], index_col=[0])
-    horti_df = horti_df.reset_index()
-    horti_df.columns = [f"{col[0]}_{col[1]}" if isinstance(col, tuple) else col for col in horti_df.columns]
-
-    crops_col = horti_df.columns[0]
-    horti_long = pd.melt(horti_df, id_vars=[crops_col], var_name='Year_Metric', value_name='Value')
-    horti_long[['Year', 'Metric']] = horti_long['Year_Metric'].str.rsplit('_', n=1, expand=True)
-    horti_long = horti_long.pivot_table(values='Value', index=[crops_col, 'Year'], columns='Metric', aggfunc='first').reset_index()
-    horti_long = horti_long.rename(columns={crops_col: 'Crops', 'Area': 'Area_in_hectares', 'Production': 'Production_in_tonnes'})
-    horti_long = horti_long[~horti_long['Crops'].isin(["Fruits", 'Citrus', 'Vegetables'])]
-    horti_long['Year'] = horti_long['Year'].apply(lambda x: x.strip()[:2] + x.strip()[-2:])
-    horti_long.columns = ['Crops', 'Year', 'Area', 'Production_in_tonnes']
-    
-    return horti_long
-
-# Function to get latest production and change in value for a specific crop
-def get_latest_and_change(df, crop, metric='Production_in_tonnes'):
-    crop_data = df[df['Crops'] == crop].sort_values('Year')
-    latest = crop_data[metric].iloc[-1]
-    previous = crop_data[metric].iloc[-2]
-    change = 100 * (latest - previous) / previous
-    return latest, change
-
-# Load the GeoJSON file for Indian states
-@st.cache_data
-def load_geojson():
-    with open('india_states.geojson', 'r') as f:
-        return json.load(f)
-
-# Function to fetch and process rainfall data
-@st.cache_data
-def fetch_rainfall_data(rainfall_type):
-    url = f"https://mausam.imd.gov.in/responsive/rainfallinformation_state.php?msg={rainfall_type}"
-    response = requests.get(url)
-    html = response.text
-
-    soup = BeautifulSoup(html, 'html.parser')
-    script_tag = soup.find('script', text=lambda t: t and 'var mapVar = AmCharts.parseGeoJSON' in t)
-    data_start = script_tag.string.index('"areas": [')
-    data_end = script_tag.string.index(']', data_start) + 1
-    json_data = script_tag.string[data_start:data_end]
-
-    json_data = json_data.replace('"areas": ', '')
-    json_data = re.sub(r'(\w+):', r'"\1":', json_data)
-    areas_data = json.loads(json_data)
-
-    rainfall_data = []
-    for area in areas_data:
-        if area['id'] and area['id'] != 'null':
-            state = area['title'].strip()
-            balloon_data = extract_data(area['balloonText'])
-            rainfall_data.append({
-                'state': state,
-                'actual': balloon_data['actual'],
-                'normal': balloon_data['normal'],
-                'deviation': balloon_data['deviation']
-            })
-
-    df = pd.DataFrame(rainfall_data)
-    df['state'] = df['state'].apply(lambda x: x.title().replace(" (Ut)", "").replace("&", "and") if "Jammu" in x else x.title().replace(" (Ut)", ""))
-    
-    return df
-
-# Helper function to extract data from the balloon text
-def extract_data(balloon_text):
-    actual = re.search(r'Actual : ([\d.]+) mm', balloon_text)
-    normal = re.search(r'Normal : ([\d.]+) mm', balloon_text)
-    departure = re.search(r'Departure : ([-\d]+)%', balloon_text)
-
-    return {
-        'actual': float(actual.group(1)) if actual else None,
-        'normal': float(normal.group(1)) if normal else None,
-        'deviation': int(departure.group(1)) if departure else None
-    }
-
-# Function to calculate group metrics for production data
-def calculate_group_metrics(group_name, agri_prod_totals):
-    latest_year = agri_prod_totals['Year'].max()
-    previous_year = latest_year - 1
-    latest_value = agri_prod_totals[(agri_prod_totals['Crop'].str.contains(group_name)) & 
-                                    (agri_prod_totals['Year'] == latest_year)]['Value'].sum()
-    previous_value = agri_prod_totals[(agri_prod_totals['Crop'].str.contains(group_name)) & 
-                                      (agri_prod_totals['Year'] == previous_year)]['Value'].sum()
-    delta = ((latest_value - previous_value) / previous_value) * 100 if previous_value != 0 else 0
-    return latest_value, delta
 
 # Load data
 df_long = load_dca_data()
 agri_prod_long = load_production_data()
 horti_long = load_horticulture_data()
 india_geojson = load_geojson()
+cpi_data = load_cpi_data()
 
 # Get the min and max dates for the slider
 min_date = df_long['Date'].min()
@@ -169,8 +36,36 @@ df_long_default = df_long[df_long['Date'] >= three_months_ago]
 
 # Streamlit app
 st.title("Inflation Monitoring Dashboard")
+col1, col2, col3, col4 = st.columns(4)
 
-tab1, tab2, tab3 = st.tabs(["DCA Retail Price Trends", "Rainfall Deviation", "Agricultural Production Trends"])
+cpi_headline_metrics = get_broad_metrics(cpi_data, "All Groups")
+cpi_food_metrics = get_broad_metrics(cpi_data, "Food and beverages")
+cpi_core_metrics = get_broad_metrics(cpi_data, "Ex Food & Fuel")
+cpi_fuel_metrics = get_broad_metrics(cpi_data, "Fuel and light")
+
+
+with col1:
+    custom_metric(label = f"CPI-Headline Y-o-Y for {cpi_headline_metrics['month']}",
+                  current = f"{cpi_headline_metrics['current mom']}",
+                  previous = f"{cpi_headline_metrics['previous mom']}")
+
+with col2:
+    custom_metric(label = f"CPI-Food Y-o-Y for {cpi_food_metrics['month']}",
+                  current = f"{cpi_food_metrics['current mom']}",
+                  previous = f"{cpi_food_metrics['previous mom']}")
+
+with col3:
+    custom_metric(label = f"CPI-Core Y-o-Y for {cpi_core_metrics['month']}",
+                  current = f"{cpi_core_metrics['current mom']}",
+                  previous = f"{cpi_core_metrics['previous mom']}")
+    
+with col4:
+    custom_metric(label = f"CPI-Fuel Y-o-Y for {cpi_fuel_metrics['month']}",
+                  current = f"{cpi_fuel_metrics['current mom']}",
+                  previous = f"{cpi_fuel_metrics['previous mom']}")
+
+
+tab1, tab2, tab3, tab4 = st.tabs(["DCA Retail Price Trends", "Rainfall Deviation", "Agricultural Production Trends", "Wholesale Prices and Arrivals"])
 
 with tab1:
     st.header("DCA Retail Price Trends")
@@ -241,9 +136,9 @@ with tab1:
         else:
             st.write("No data available for the selected period and commodities.")
             
+
 with tab2:
     st.header("Rainfall Deviation")
-    
     col1, col2 = st.columns(2)
     
     with col1:
@@ -431,4 +326,33 @@ with tab3:
         fig2.update_traces(textposition='outside')
         st.plotly_chart(fig2, use_container_width=True)
 
+with tab4:
+    commodity_dict = {
+    "Gram": 1, "Groundnut": 3, "Masur/Lentil (Dal/Split)": 5, "Groundnut Oil": 4, "Lentil": 6, "Moong (Dal/Split)": 7, "Moong": 8, "Onion": 9,
+    "Paddy": 10, "Potato": 12, "Rapeseed & Mustard Oil": 14, "Rapeseed & Mustard": 13, "Rice": 15, "Soybean": 16, "Sunflower": 18,
+    "Tur (Dal/Split)": 21, "Tomato": 20, "Tur": 22, "Urad (Dal/Split)": 23, "Urad": 24, "Wheat Atta": 26, "Wheat": 25, "Sesamum": 27,
+    "Avare Dal": 32, "Bajra": 33, "Barley": 34, "Castorseed": 36, "Cotton": 37, "Foxtail Millet": 41, "Cowpea": 40, "Jute": 45,
+    "Guarseed": 43, "Jowar": 44, "Kulthi": 48, "Kodo Millet": 47, "Lakh": 49, "Linseed": 50, "Maize": 53, "Nigerseed": 56, "Peas": 58,
+    "Ragi": 62, "Ramdana": 64, "Safflower": 66, "Sannhemp": 69, "Sugarcane": 72, "Tobacco": 74}
+    
+    # Create dropdown menu
+    selected_commodity = st.selectbox(
+    'Select a commodity',
+    options=sorted(commodity_dict.keys()),  # Sort alphabetically
+    index = 23  # Default to first item
+    )
 
+    # Get the ID of selected commodity
+    selected_commodity_id = commodity_dict[selected_commodity]
+    
+    data_object = fetch_and_process_data(
+        commodity_id=selected_commodity_id,
+        month_from=1,
+        year_from=2014,
+        month_to=12,
+        year_to=2024
+    )
+    data_arr = data_object.dataframe
+    title_arrivals = data_object.title
+    
+    plot_comparison(data_arr)
