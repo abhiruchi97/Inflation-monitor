@@ -16,6 +16,9 @@ from typing import Dict, List
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
+# Suppress SSL warnings
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
 
 @st.cache_data
 def load_dca_data():
