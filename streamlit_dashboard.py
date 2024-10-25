@@ -3,6 +3,7 @@ import numpy as np
 import plotly.express as px
 import streamlit as st
 import json
+import datetime as dt
 import requests
 from bs4 import BeautifulSoup
 import re
@@ -353,7 +354,7 @@ with tab4:
         month_from=1,
         year_from=2014,
         month_to=12,
-        year_to=2024
+        year_to=dt.datetime.today().year
     )
     data_arr = data_object.dataframe
     title_arrivals = data_object.title
