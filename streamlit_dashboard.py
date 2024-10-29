@@ -164,7 +164,7 @@ with tab2:
                 {'label': 'Cumulative', 'value': 'C'}
             ],
             format_func=lambda x: x['label'],
-            index=2
+            index=1
         )['value']
 
         df = fetch_rainfall_data(rainfall_type)
