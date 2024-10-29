@@ -15,6 +15,7 @@ from dataclasses import dataclass
 from typing import Dict, List
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
+import warnings
 
 # Suppress SSL warnings
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -522,3 +523,41 @@ def plot_comparison(df):
         st.plotly_chart(fig_arrivals, use_container_width=True)
     with col2:
         st.plotly_chart(fig_prices, use_container_width=True)
+
+def fetch_major_producers(commodity):
+    """
+    Fetches data for a specific commodity from the API and returns a sorted DataFrame.
+    """
+    warnings.filterwarnings("ignore", message="Unverified HTTPS request")
+
+    url = f"https://api-prd.upag.gov.in/v1/upagapi/homepage/loadindiamap?cropname={commodity}"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:131.0) Gecko/20100101 Firefox/131.0",
+        "Accept": "application/json, text/plain, */*",
+        "Accept-Language": "en-US,en;q=0.5",
+        "Accept-Encoding": "gzip, deflate, br, zstd",
+        "Origin": "https://upag.gov.in",
+        "Connection": "keep-alive",
+        "Referer": "https://upag.gov.in/",
+        "Sec-Fetch-Dest": "empty",
+        "Sec-Fetch-Mode": "cors",
+        "Sec-Fetch-Site": "same-site"
+    }
+
+    try:
+        response = requests.get(url, headers=headers, verify=False)
+        data = response.json()
+        
+        df = pd.DataFrame(data['records'])
+        df_selected = df[['cropName', 'stateName', 'metricValue', 'percentageVariation']]
+        df_selected.columns = ['Crop', 'State', 'Production(LT)', 'Percentage Variation']
+        
+        # Convert to numeric values
+        df_selected['Production(LT)'] = pd.to_numeric(df_selected['Production(LT)'], errors='coerce')
+        df_selected['Percentage Variation'] = pd.to_numeric(df_selected['Percentage Variation'], errors='coerce')
+        
+        return df_selected.sort_values(by='Production(LT)', ascending=False)
+
+    except Exception as e:
+        st.error(f"Error fetching data: {str(e)}")
+        return None
