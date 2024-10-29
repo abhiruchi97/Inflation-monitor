@@ -167,10 +167,10 @@ with tab2:
             index=1
         )['value']
 
-        df = fetch_rainfall_data(rainfall_type)
+        df_rain = fetch_rainfall_data(rainfall_type)
         
         fig = px.choropleth(
-            df,
+            df_rain,
             geojson=india_geojson,
             locations='state',
             featureidkey='properties.ST_NM',
@@ -215,7 +215,7 @@ with tab2:
                 st.dataframe(df.round(1))
         
     st.subheader("Rainfall Data")
-    st.dataframe(df)
+    st.dataframe(df_rain.round(1))
 
 with tab3:
     st.header("Food Production | Yearly")

@@ -23,7 +23,7 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 @st.cache_data
 def load_dca_data():
-    df = pd.read_excel('dca_data.xlsx', sheet_name="State_Consolidated_TimeSeries").iloc[54:76, 1:].T.reset_index()
+    df = pd.read_excel('dca_test.xlsx', sheet_name=0).T.reset_index()
     cols = df.iloc[0, 1:]
     index = df.iloc[1:, 0]
     df = df.iloc[1:, 1:]
