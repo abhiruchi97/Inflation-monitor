@@ -102,6 +102,18 @@ def load_geojson():
     with open('india_states.geojson', 'r') as f:
         return json.load(f)
 
+# Helper function to extract data from the balloon text
+def extract_data(balloon_text):
+    actual = re.search(r'Actual : ([\d.]+) mm', balloon_text)
+    normal = re.search(r'Normal : ([\d.]+) mm', balloon_text)
+    departure = re.search(r'Departure : ([-\d]+)%', balloon_text)
+
+    return {
+        'actual': float(actual.group(1)) if actual else None,
+        'normal': float(normal.group(1)) if normal else None,
+        'deviation': int(departure.group(1)) if departure else None
+    }
+
 # Function to fetch and process rainfall data
 @st.cache_data
 def fetch_rainfall_data(rainfall_type):
@@ -136,22 +148,40 @@ def fetch_rainfall_data(rainfall_type):
     
     return df
 
+def get_rainfall_labels():
+    """
+    Fetches and extracts label text from the HTML content of a given URL.
+    
+    Args:
+        url (str): The URL to fetch the HTML content from.
+    
+    Returns:
+        list: A list of cleaned label texts.
+    """
+    try:
+        # Send a GET request to the URL
+        response = requests.get("https://mausam.imd.gov.in/responsive/rainfallinformation_state.php?msg=C")
+        response.raise_for_status()  # Raise an HTTPError for bad responses (4xx or 5xx)
+        
+        # Parse the HTML content using BeautifulSoup
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        # Find all label elements with the class 'form-check-label' and extract text
+        labels = [
+            i.text.replace(',,,\r', '').strip() 
+            for i in soup.find_all('label', class_='form-check-label')
+        ]
+        
+        return labels
+    
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching URL: {e}")
+        return []
+
 @st.cache_data
 def load_cpi_data():
     data = pd.read_excel("inflation_2012-24.xlsx", index_col = 'Description').iloc[[12,18,26,27],3:]
     return data
-
-# Helper function to extract data from the balloon text
-def extract_data(balloon_text):
-    actual = re.search(r'Actual : ([\d.]+) mm', balloon_text)
-    normal = re.search(r'Normal : ([\d.]+) mm', balloon_text)
-    departure = re.search(r'Departure : ([-\d]+)%', balloon_text)
-
-    return {
-        'actual': float(actual.group(1)) if actual else None,
-        'normal': float(normal.group(1)) if normal else None,
-        'deviation': int(departure.group(1)) if departure else None
-    }
 
 # Function to calculate group metrics for production data
 def calculate_group_metrics(group_name, agri_prod_totals):

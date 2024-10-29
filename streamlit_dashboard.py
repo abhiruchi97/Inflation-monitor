@@ -151,20 +151,20 @@ with tab1:
 with tab2:
     st.header("Rainfall Deviation")
     col1, col2 = st.columns(2)
-    
+    rainfall_labels = get_rainfall_labels()
     with col1:
         url = "https://mausam.imd.gov.in/responsive/rainfallinformation_state.php"
         st.write("Data Source: [https://mausam.imd.gov.in/responsive/rainfallinformation_state.php](%s)" % url)
         rainfall_type = st.selectbox(
             "Select Period",
             options=[
-                {'label': 'Daily', 'value': 'D'},
-                {'label': 'Weekly', 'value': 'W'},
-                {'label': 'Monthly', 'value': 'M'},
-                {'label': 'Cumulative', 'value': 'C'}
+                {'label': rainfall_labels[0], 'value': 'D'},
+                {'label': rainfall_labels[1], 'value': 'W'},
+                {'label': rainfall_labels[2], 'value': 'M'},
+                {'label': rainfall_labels[3], 'value': 'C'}
             ],
             format_func=lambda x: x['label'],
-            index=1
+            index=3
         )['value']
 
         df_rain = fetch_rainfall_data(rainfall_type)
