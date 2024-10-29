@@ -30,7 +30,7 @@ def load_dca_data():
     df.columns = cols
     df.index = index
     df = df.dropna()
-    df.index = pd.to_datetime(df.index, format = "%d-%m-%Y")
+    df.index = pd.to_datetime(df.index, format = "%d-%m-%Y", errors = 'coerce')
     df = df[~df.index.weekday.isin([5, 6])]
     df = df.resample("W-FRI").mean()
 
