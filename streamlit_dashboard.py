@@ -355,18 +355,18 @@ with tab4:
     "Tur (Dal/Split)": 21, "Tomato": 20, "Tur": 22, "Urad (Dal/Split)": 23, "Urad": 24, "Wheat Atta": 26, "Wheat": 25, "Sesamum": 27,
     "Avare Dal": 32, "Bajra": 33, "Barley": 34, "Castorseed": 36, "Cotton": 37, "Foxtail Millet": 41, "Cowpea": 40, "Jute": 45,
     "Guarseed": 43, "Jowar": 44, "Kulthi": 48, "Kodo Millet": 47, "Lakh": 49, "Linseed": 50, "Maize": 53, "Nigerseed": 56, "Peas": 58,
-    "Ragi": 62, "Ramdana": 64, "Safflower": 66, "Sannhemp": 69, "Sugarcane": 72, "Tobacco": 74}
+    "Ragi": 62, "Ramdana": 64, "Safflower": 66, "Sannhemp": 69, "Sugarcane": 72, "Tobacco": 74, "Select":0}
     
     
     # Create dropdown with None as default
     selected_commodity = st.selectbox(
         'Select a commodity',
-        options=['None'] + sorted(commodity_dict.keys()),  # Add None as first option
+        options=['Select'] + sorted(commodity_dict.keys()),  # Add None as first option
         index=0  # Default to None (first item)
     )
 
     # Only fetch and display data if a commodity is selected
-    if selected_commodity != 'None':
+    if selected_commodity != 'Select':
         # Get the ID of selected commodity
         selected_commodity_id = commodity_dict[selected_commodity]
         
