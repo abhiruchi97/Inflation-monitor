@@ -211,7 +211,7 @@ with tab2:
     st.title("Major Commodity Producers")
     
     # Add None as the first option
-    selected_commodity = st.selectbox("Select a commodity:", ["None"] + crops)
+    selected_commodity = st.selectbox("Select a commodity:", ["None"] + list_of_crops)
     
     # Only fetch and display data if a commodity is selected
     if selected_commodity != "None":
