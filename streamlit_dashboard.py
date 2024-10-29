@@ -357,24 +357,33 @@ with tab4:
     "Guarseed": 43, "Jowar": 44, "Kulthi": 48, "Kodo Millet": 47, "Lakh": 49, "Linseed": 50, "Maize": 53, "Nigerseed": 56, "Peas": 58,
     "Ragi": 62, "Ramdana": 64, "Safflower": 66, "Sannhemp": 69, "Sugarcane": 72, "Tobacco": 74}
     
-    # Create dropdown menu
+    
+    # Create dropdown with None as default
     selected_commodity = st.selectbox(
-    'Select a commodity',
-    options=sorted(commodity_dict.keys()),  # Sort alphabetically
-    index = 23  # Default to first item
+        'Select a commodity',
+        options=['None'] + sorted(commodity_dict.keys()),  # Add None as first option
+        index=0  # Default to None (first item)
     )
 
-    # Get the ID of selected commodity
-    selected_commodity_id = commodity_dict[selected_commodity]
-    
-    data_object = fetch_and_process_data(
-        commodity_id=selected_commodity_id,
-        month_from=1,
-        year_from=2014,
-        month_to=12,
-        year_to=dt.datetime.today().year
-    )
-    data_arr = data_object.dataframe
-    title_arrivals = data_object.title
-    
-    plot_comparison(data_arr)
+    # Only fetch and display data if a commodity is selected
+    if selected_commodity != 'None':
+        # Get the ID of selected commodity
+        selected_commodity_id = commodity_dict[selected_commodity]
+        
+        # Show loading message while fetching data
+        with st.spinner(f'Loading data for {selected_commodity}...'):
+            data_object = fetch_and_process_data(
+                commodity_id=selected_commodity_id,
+                month_from=1,
+                year_from=2014,
+                month_to=12,
+                year_to=dt.datetime.today().year
+            )
+            data_arr = data_object.dataframe
+            title_arrivals = data_object.title
+            
+            # Display the plot
+            plot_comparison(data_arr)
+    else:
+        # Optional: Display a message when no commodity is selected
+        st.write("Please select a commodity to view the data.")
