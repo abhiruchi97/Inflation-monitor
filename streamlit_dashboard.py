@@ -203,21 +203,19 @@ with tab2:
         st.plotly_chart(fig)
 
     with col2:
-        st.subheader("Rainfall Data")
-        st.dataframe(df)
-
-
-
-    st.title("Major Commodity Producers")
-    
-    # Add None as the first option
-    selected_commodity = st.selectbox("Select a commodity:", ["None"] + list_of_crops)
-    
-    # Only fetch and display data if a commodity is selected
-    if selected_commodity != "None":
-        df = fetch_major_producers(selected_commodity)
-        if df is not None:
-            st.dataframe(df)
+        st.subheader("Major Commodity Producers")
+        
+        # Add None as the first option
+        selected_commodity = st.selectbox("Select a commodity:", ["None"] + list_of_crops)
+        
+        # Only fetch and display data if a commodity is selected
+        if selected_commodity != "None":
+            df = fetch_major_producers(selected_commodity)
+            if df is not None:
+                st.dataframe(df.round(1))
+        
+    st.subheader("Rainfall Data")
+    st.dataframe(df)
 
 with tab3:
     st.header("Food Production | Yearly")
