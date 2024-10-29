@@ -21,6 +21,13 @@ def wide_space_default():
 
 wide_space_default()
 
+# List of crops
+list_of_crops = ['Rice', 'Wheat', 'Maize', 'Barley', 'Jowar', 'Bajra', 'Ragi', 'Small Millets', 
+         'Shree Anna /Nutri Cereals', 'Nutri/Coarse Cereals', 'Cereals', 'Tur', 'Gram', 
+         'Urad', 'Moong', 'Lentil', 'Other Pulses', 'Total Pulses', 'Total Food Grains', 
+         'Groundnut', 'Castorseed', 'Sesamum', 'Nigerseed', 'Soybean', 'Sunflower',
+         'Rapeseed & Mustard', 'Linseed', 'Safflower', 'Total Oil Seeds', 'Sugarcane', 
+         'Cotton', 'Jute', 'Mesta', 'Jute & Mesta', 'Tobacco', 'Sannhemp', 'Guarseed']
 
 # Load data
 df_long = load_dca_data()
@@ -198,6 +205,19 @@ with tab2:
     with col2:
         st.subheader("Rainfall Data")
         st.dataframe(df)
+
+
+
+    st.title("Major Commodity Producers")
+    
+    # Add None as the first option
+    selected_commodity = st.selectbox("Select a commodity:", ["None"] + crops)
+    
+    # Only fetch and display data if a commodity is selected
+    if selected_commodity != "None":
+        df = fetch_major_producers(selected_commodity)
+        if df is not None:
+            st.dataframe(df)
 
 with tab3:
     st.header("Food Production | Yearly")
