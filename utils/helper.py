@@ -553,8 +553,8 @@ def fetch_major_producers(commodity):
         df_selected.columns = ['Crop', 'State', 'Production(LT)', 'Percentage Variation']
         
         # Convert to numeric values
-        df_selected['Production(LT)'] = pd.to_numeric(df_selected['Production(LT)'], errors='coerce')
-        df_selected['Percentage Variation'] = pd.to_numeric(df_selected['Percentage Variation'], errors='coerce')
+        df_selected.loc[:,'Production(LT)'] = pd.to_numeric(df_selected['Production(LT)'], errors='coerce')
+        df_selected.loc[:,'Percentage Variation'] = pd.to_numeric(df_selected['Percentage Variation'], errors='coerce')
         
         return df_selected.sort_values(by='Production(LT)', ascending=False)
 
