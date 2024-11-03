@@ -7,3 +7,5 @@ Requests==2.32.3
 streamlit==1.39.0
 openpyxl
 urllib3
+setuptools>=65.5.1
+wheel>=0.38.4
