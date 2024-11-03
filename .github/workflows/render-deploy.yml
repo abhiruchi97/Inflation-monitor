@@ -2,7 +2,7 @@ name: Scheduled Deploy to Render
 
 on:
   schedule:
-    - cron: '30 4 * * *'  # Runs at 2 AM UTC daily
+    - cron: '15 4 * * *'  # Runs at 2 AM UTC daily
   workflow_dispatch:      # Allows manual trigger
 
 jobs:
