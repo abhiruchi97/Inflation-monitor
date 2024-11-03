@@ -3,9 +3,8 @@ name: Scheduled Deploy to Render
 
 on:
   schedule:
-    # Runs at 02:00 UTC every day (adjust time as needed)
+    # Runs at 02:00 UTC every day
     - cron: '30 4 * * *'
-  # Optional: Keep manual trigger for testing
   workflow_dispatch:
 
 jobs:
@@ -20,11 +19,12 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.x'
+          python-version: '3.11'  # Changed from 3.x to avoid distutils issue in 3.12
           
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
+          python -m pip install setuptools  # Add this line to fix distutils error
           pip install -r requirements.txt
           
       - name: Run tests
@@ -35,18 +35,44 @@ jobs:
         run: |
           curl -X GET "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
 
-      # Optional: Add notification of deployment status
-      - name: Notify deployment status
+      # Simplified status notification using environment file
+      - name: Record deployment status
+        if: always()
+        run: |
+          echo "DEPLOY_TIME=$(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_ENV
+          echo "DEPLOY_STATUS=${{ job.status }}" >> $GITHUB_ENV
+
+      - name: Create deployment status issue
         if: always()
         uses: actions/github-script@v6
         with:
           script: |
-            const { job, conclusion } = context;
-            const status = conclusion === 'success' ? '✅' : '❌';
-            const message = `${status} Daily deployment ${conclusion} at ${new Date().toISOString()}`;
-            await github.rest.issues.createComment({
+            const status = process.env.DEPLOY_STATUS === 'success' ? '✅' : '❌';
+            const message = `${status} Deployment Status\n\nTime: ${process.env.DEPLOY_TIME}\nStatus: ${process.env.DEPLOY_STATUS}`;
+            
+            // First try to find existing deployment status issue
+            const issues = await github.rest.issues.listForRepo({
               owner: context.repo.owner,
               repo: context.repo.name,
-              issue_number: 1, // Create an issue to track deployments and put its number here
-              body: message
+              labels: ['deployment-status'],
+              state: 'open'
             });
+            
+            if (issues.data.length > 0) {
+              // Update existing issue
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.name,
+                issue_number: issues.data[0].number,
+                body: message
+              });
+            } else {
+              // Create new issue
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.name,
+                title: 'Deployment Status Tracking',
+                body: message,
+                labels: ['deployment-status']
+              });
+            }
