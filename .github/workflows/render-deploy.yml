@@ -1,0 +1,52 @@
+# .github/workflows/render-deploy.yml
+name: Scheduled Deploy to Render
+
+on:
+  schedule:
+    # Runs at 02:00 UTC every day (adjust time as needed)
+    - cron: '30 4 * * *'
+  # Optional: Keep manual trigger for testing
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy to Render
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          
+      - name: Run tests
+        run: |
+          python -m pytest
+          
+      - name: Deploy to Render
+        run: |
+          curl -X GET "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
+
+      # Optional: Add notification of deployment status
+      - name: Notify deployment status
+        if: always()
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const { job, conclusion } = context;
+            const status = conclusion === 'success' ? '✅' : '❌';
+            const message = `${status} Daily deployment ${conclusion} at ${new Date().toISOString()}`;
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.name,
+              issue_number: 1, // Create an issue to track deployments and put its number here
+              body: message
+            });
