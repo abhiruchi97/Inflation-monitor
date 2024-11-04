@@ -76,10 +76,12 @@ with col4:
                   previous = f"{cpi_fuel_metrics['previous mom']}")
 
 
-tab1, tab2, tab3, tab4 = st.tabs(["DCA Retail Price Trends", "Rainfall Deviation", "Agricultural Production Trends", "Wholesale Prices and Arrivals"])
+tab1, tab2, tab3, tab4 = st.tabs(["DCA Retail Price Trends", "Rainfall Deviation", "Agricultural Production Trends", "Arrivals and Wholesale Prices"])
 
 with tab1:
     st.header("DCA Retail Price Trends")
+    url_dca = "https://fcainfoweb.nic.in/reports/report_menu_web.aspx"
+    st.write("Data Source: [https://fcainfoweb.nic.in/reports/report_menu_web.aspx](%s)" % url_dca)
     
     col1, col2 = st.columns(2)
     
@@ -203,7 +205,9 @@ with tab2:
         st.plotly_chart(fig)
 
     with col2:
-        st.subheader("Major Commodity Producers")
+        st.subheader("Major Producers | Statewise")
+        url_major = "https://upag.gov.in/"
+        st.write("Data Source: [https://upag.gov.in/](%s)" % url_major)
         
         # Add None as the first option
         selected_commodity = st.selectbox("Select a commodity:", ["None"] + list_of_crops)
@@ -357,6 +361,9 @@ with tab4:
     "Guarseed": 43, "Jowar": 44, "Kulthi": 48, "Kodo Millet": 47, "Lakh": 49, "Linseed": 50, "Maize": 53, "Nigerseed": 56, "Peas": 58,
     "Ragi": 62, "Ramdana": 64, "Safflower": 66, "Sannhemp": 69, "Sugarcane": 72, "Tobacco": 74, "Select":0}
     
+    st.subheader("Arrivals and Wholesale Prices")
+    url_arr = "https://upag.gov.in/dash-reports/pricesmonthcomparison?rtab=Analytics&rtype=dashboards"
+    st.write("Data Source: [https://upag.gov.in/dash-reports/pricesmonthcomparison?rtab=Analytics&rtype=dashboards](%s)" % url_arr)
     
     # Create dropdown with None as default
     selected_commodity = st.selectbox(
