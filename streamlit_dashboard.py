@@ -112,7 +112,10 @@ with col4:
                 previous = f"{cpi_fuel_metrics['previous mom']}")
 
 
-tab1, tab2, tab3, tab4 = st.tabs(["DCA Retail Price Trends", "Rainfall Deviation", "Agricultural Production Trends", "Arrivals and Wholesale Prices"])
+tab1, tab2, tab3, tab4 = st.tabs(["DCA Retail Price Trends", 
+                                  "Rainfall Deviation", 
+                                  "Agricultural Production Trends", 
+                                  "Arrivals and Wholesale Prices"])
 
 with tab1:
     st.header("DCA Retail Price Trends")
@@ -122,13 +125,22 @@ with tab1:
     col1, col2 = st.columns(2)
     
     with col1:
-        commodities = st.multiselect(
+        # Add "Select All" option to the multiselect
+        all_commodities_option = ["All Commodities"] + list(df_long['Commodity'].unique())
+        commodities_selected = st.multiselect(
             "Select commodities",
-            options=df_long['Commodity'].unique(),
+            options=all_commodities_option,
             default=['Tomato', 'Potato', 'Onion']
         )
+        
+        # Handle "All Commodities" selection
+        if "All Commodities" in commodities_selected:
+            commodities = list(df_long['Commodity'].unique())
+        else:
+            commodities = commodities_selected
 
         normalize = st.checkbox("Normalize prices to 100")
+        # ... rest of the code remains the same ...
 
         start_date = st.date_input("Start date", value=three_months_ago, min_value=min_date, max_value=max_date)
         end_date = st.date_input("End date", value=max_date, min_value=min_date, max_value=max_date)
@@ -169,6 +181,13 @@ with tab1:
             pct_change_df['Date'] = pd.to_datetime(pct_change_df['Date'])
             pct_change_wide = pct_change_df.pivot(index='Commodity', columns='Date', values='Pct_Change')
             
+            # Calculate cumulative momentum
+            cumulative_momentum = []
+            for commodity in pct_change_wide.index:
+                momentum_values = pct_change_wide.loc[commodity].values
+                cum_momentum = np.prod([(1 + m/100) for m in momentum_values]) - 1
+                cumulative_momentum.append(cum_momentum * 100)
+                
             pct_change_wide = pct_change_wide.sort_index(axis=1, ascending=True)
             
             num_weeks = len(pct_change_wide.columns)
@@ -178,8 +197,12 @@ with tab1:
             new_column_names = [f'{name}\n({date})' for name, date in zip(column_names, column_dates)]
             pct_change_wide.columns = new_column_names
             
+            # Add cumulative momentum column
+            pct_change_wide['4-Week\nMomentum (%)'] = cumulative_momentum
+            
             pct_change_wide = pct_change_wide.reset_index()
             pct_change_wide = pct_change_wide.round(2)
+            
             
             st.markdown(pct_change_wide.to_html(escape=False), unsafe_allow_html=True)
         else:
