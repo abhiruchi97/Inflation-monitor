@@ -453,3 +453,5 @@ with tab4:
     else:
         # Optional: Display a message when no commodity is selected
         st.write("Please select a commodity to view the data.")
+        
+st.Markdown("Designed and developed by Abhiruchi Rathi, PMRD.")
