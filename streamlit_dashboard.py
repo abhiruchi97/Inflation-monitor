@@ -112,10 +112,11 @@ with col4:
                 previous = f"{cpi_fuel_metrics['previous mom']}")
 
 
-tab1, tab2, tab3, tab4 = st.tabs(["DCA Retail Price Trends", 
+tab1, tab2, tab3, tab4, tab5 = st.tabs(["DCA Retail Price Trends", 
                                   "Rainfall Deviation", 
                                   "Agricultural Production Trends", 
-                                  "Arrivals and Wholesale Prices"])
+                                  "Arrivals and Wholesale Prices",
+                                  "Daily Arrivals"])
 
 with tab1:
     st.header("DCA Retail Price Trends")
@@ -453,7 +454,183 @@ with tab4:
     else:
         # Optional: Display a message when no commodity is selected
         st.write("Please select a commodity to view the data.")
-        
+
+with tab5:
+    # Load data
+    data = load_daily_arrival_data()
+    if data is not None:
+        st.write("Data loaded successfully")
+    else:
+        st.write("Failed to load data")
+
+    # Convert 'Date' column to datetime
+    data['Date'] = pd.to_datetime(data['Date'], format='%d-%b-%Y')
+
+    # Title and description
+    st.title("Mandi Arrival Analysis")
+    st.write("Source: https://agmarknet.gov.in/")
+
+    # Filters section
+    st.header("Filters")
+
+    # Commodity selection with capitalized names
+    commodity_list = data['Commodity'].unique()
+    selected_commodity = st.selectbox(
+        "Select Commodity", 
+        commodity_list,
+        index=33,
+        format_func=lambda x: x.capitalize()  # Display names in capitalized format
+    )
+
+    # Get current date
+    current_date = dt.datetime.now() - dt.timedelta(2)
+    current_year = current_date.year
+    current_month = current_date.month
+    current_day = current_date.day
+
+    # Default date range for seasonality analysis: start of the current month to today
+    start_of_current_month = current_date.replace(day=1)  # First day of the current month
+    end_date_default = current_date
+
+    # Date range selection for seasonality analysis
+    col1, col2 = st.columns(2)
+    with col1:
+        start_date = st.date_input("Start Date", start_of_current_month)
+    with col2:
+        end_date = st.date_input("End Date", end_date_default)
+
+    # Filter data based on selections for seasonality analysis
+    filtered_data = data[
+        (data['Commodity'] == selected_commodity) & 
+        (data['Date'] >= pd.to_datetime(start_date)) & 
+        (data['Date'] <= pd.to_datetime(end_date))
+    ]
+
+    # Checkbox to toggle display of filtered data
+    show_data = st.checkbox("Show Filtered Data")
+
+    # Display filtered data if checkbox is checked
+    if show_data:
+        st.subheader("Filtered Data")
+        st.write(data[(data['Commodity'] == selected_commodity)])
+
+    # Create two columns for the charts
+    col1, col2 = st.columns(2)
+
+    # Time Series Line Chart: January to December for the last 3 years
+    with col1:
+        #st.subheader(f"Monthly Arrival Trend for {selected_commodity.capitalize()}")
+
+        # Function to get monthly sums for January to December for the last 3 years
+        def get_monthly_sums(data, selected_commodity, current_year, current_month, current_day):
+            results = []
+            for year in range(current_year - 4, current_year + 1):  # Last 3 years
+                for month in range(1, 13):  # January to December
+                    if year == current_year and month == current_month:
+                        # For the current month, include data only up to the current day
+                        monthly_data = data[
+                            (data['Commodity'] == selected_commodity) & 
+                            (data['Date'].dt.year == year) & 
+                            (data['Date'].dt.month == month) & 
+                            (data['Date'].dt.day <= current_day)
+                        ]
+                    else:
+                        # For other months, include the full month's data
+                        monthly_data = data[
+                            (data['Commodity'] == selected_commodity) & 
+                            (data['Date'].dt.year == year) & 
+                            (data['Date'].dt.month == month)
+                        ]
+                    total_value = monthly_data['Total Value'].sum()
+                    if total_value > 0:  # Only include months with data
+                        results.append({
+                            'Year': year,
+                            'Month': month,
+                            'Total Value': total_value
+                        })
+            return pd.DataFrame(results)
+
+        # Get monthly sums for the last 3 years
+        monthly_sums = get_monthly_sums(data, selected_commodity, current_year, current_month, current_day)
+
+        # Plot time series line chart for monthly sums
+        fig = px.line(
+            monthly_sums, 
+            x='Month', 
+            y='Total Value', 
+            color='Year', 
+            title=f'Monthly Arrival Trend for {selected_commodity.capitalize()}',
+            labels={'Month': 'Month', 'Total Value': 'Total Arrivals (tonnes)'},
+            markers=True  # Add markers for better visibility
+        )
+
+        # Customize x-axis to show month names
+        fig.update_xaxes(
+            tickvals=list(range(1, 13)),  # Months 1 to 12
+            ticktext=['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+        )
+
+        st.plotly_chart(fig, use_container_width=True)  # Use full width of the column
+
+    # Seasonality Analysis: Bar chart for selected date range (default: start of current month to today)
+    with col2:
+        #st.subheader(f"Seasonality Analysis")
+
+        # Function to get the same date range for previous years
+        def get_previous_years_data(data, start_date, end_date, selected_commodity, years_back):
+            """
+            Retrieve data for the same date range across previous years.
+            """
+            results = []
+            for i in range(0, years_back + 2):
+                prev_start = start_date - pd.DateOffset(years=i)
+                prev_end = end_date - pd.DateOffset(years=i)
+                prev_data = data[
+                    (data['Commodity'] == selected_commodity) & 
+                    (data['Date'] >= prev_start) & 
+                    (data['Date'] <= prev_end)
+                ]
+                prev_data['Year'] = prev_start.year
+                results.append(prev_data)
+            return pd.concat(results)
+
+        # Get data for the past 3 years
+        past_years_data = get_previous_years_data(
+            data, 
+            pd.to_datetime(start_date), 
+            pd.to_datetime(end_date), 
+            selected_commodity, 
+            years_back=3
+        )
+
+        # Sum arrivals for each year
+        seasonality_summary = past_years_data.groupby('Year')['Total Value'].sum().reset_index()
+
+        # Plot bar chart for seasonality
+        fig3 = px.bar(
+            seasonality_summary, 
+            x='Year', 
+            y='Total Value', 
+            title=f'Monthly arrivals as on {current_date.date()} vis-a-vis previous years',
+            color_discrete_sequence=['#9467bd']  # Use the orange color from the Pastel palette
+        )
+
+        # Customize x-axis labels to remove .5
+        fig3.update_xaxes(
+            tickvals=seasonality_summary['Year'],  # Use integer years as tick values
+            ticktext=seasonality_summary['Year'].astype(str)  # Display as strings
+        )
+
+        # Improve layout and aesthetics
+        fig3.update_layout(
+            xaxis_title="Year",
+            yaxis_title="Total Arrivals (tonnes)",
+            showlegend=False,  # Hide legend since colors are for years
+            template="plotly_white"  # Use a clean and modern template
+        )
+
+        st.plotly_chart(fig3, use_container_width=True)  # Use full width of the column
+
 st.markdown("""
-    <p style="font-size: 12px;"><strong>Designed and developed by</strong><br>Prices and Monetary Research Division, DEPR</p>
-""", unsafe_allow_html=True)
+     <p style="font-size: 12px;"><strong>Designed and developed by</strong><br>Prices and Monetary Research Division, DEPR</p>
+ """, unsafe_allow_html=True)
