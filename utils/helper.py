@@ -97,11 +97,11 @@ def get_latest_and_change(df, crop, metric='Production_in_tonnes'):
     change = 100 * (latest - previous) / previous
     return latest, change
 
-# Load the GeoJSON file for Indian states
-@st.cache_data
-def load_geojson():
-    with open('india_states.geojson', 'r') as f:
-        return json.load(f)
+# # Load the GeoJSON file for Indian states
+# @st.cache_data
+# def load_geojson():
+#     with open('india_states.geojson', 'r') as f:
+#         return json.load(f)
 
 # Helper function to extract data from the balloon text
 def extract_data(balloon_text):
