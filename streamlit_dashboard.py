@@ -709,5 +709,8 @@ with tab5:
         st.plotly_chart(fig3, use_container_width=True)  # Use full width of the column
 
 st.markdown("""
-     <p style="font-size: 12px;"><strong>Designed and developed by</strong><br>Prices and Monetary Research Division, DEPR</p>
- """, unsafe_allow_html=True)
+    <p style="font-size: 14px;">
+        <strong>Designed and developed by</strong><br>
+        <strong><span style="color: coral;">Prices and Monetary Research Division, DEPR</span></strong>
+    </p>
+""", unsafe_allow_html=True)
