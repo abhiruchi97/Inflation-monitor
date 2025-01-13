@@ -593,5 +593,4 @@ def fetch_major_producers(commodity):
         st.error(f"Error fetching data: {str(e)}")
         return None
 
-def load_daily_arrival_data():
-        return pd.read_csv("commodity_data.csv")
+
