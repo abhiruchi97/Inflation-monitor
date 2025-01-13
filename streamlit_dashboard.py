@@ -55,6 +55,10 @@ def wide_space_default():
 
 wide_space_default()
 
+@st.cache_data
+def load_daily_arrival_data():
+        return pd.read_csv("commodity_data.csv")
+
 # if check_password():
 # List of crops
 list_of_crops = ['Rice', 'Wheat', 'Maize', 'Barley', 'Jowar', 'Bajra', 'Ragi', 'Small Millets', 
