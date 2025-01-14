@@ -22,72 +22,72 @@ import warnings
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
-@st.cache_data
-def load_dca_data():
-    df = pd.read_excel('dca_test.xlsx', sheet_name=0).T.reset_index()
-    cols = df.iloc[0, 1:]
-    index = df.iloc[1:, 0]
-    df = df.iloc[1:, 1:]
-    df.columns = cols
-    df.index = index
-    df = df.dropna()
-    df.index = pd.to_datetime(df.index, dayfirst = True)
-    df = df[~df.index.weekday.isin([5, 6])]
-    df = df.resample("W-FRI").mean()
+# @st.cache_data
+# def load_dca_data():
+#     df = pd.read_excel('dca_test.xlsx', sheet_name=0).T.reset_index()
+#     cols = df.iloc[0, 1:]
+#     index = df.iloc[1:, 0]
+#     df = df.iloc[1:, 1:]
+#     df.columns = cols
+#     df.index = index
+#     df = df.dropna()
+#     df.index = pd.to_datetime(df.index, dayfirst = True)
+#     df = df[~df.index.weekday.isin([5, 6])]
+#     df = df.resample("W-FRI").mean()
 
-    df_long = df.reset_index().melt(
-        id_vars=['index'],
-        value_vars=['Rice', 'Wheat', 'Atta(wheat)', 'Gram Dal', 'Tur/Arhar Dal', 'Urad Dal',
-                    'Moong Dal', 'Masoor Dal', 'Ground Nut Oil', 'Mustard Oil', 'Vanaspati',
-                    'Soya Oil', 'Sunflower Oil', 'Palm Oil', 'Potato', 'Onion', 'Tomato',
-                    'Sugar', 'Gur', 'Milk', 'Tea', 'Salt'],
-        var_name='Commodity',
-        value_name='Price'
-    )
+#     df_long = df.reset_index().melt(
+#         id_vars=['index'],
+#         value_vars=['Rice', 'Wheat', 'Atta(wheat)', 'Gram Dal', 'Tur/Arhar Dal', 'Urad Dal',
+#                     'Moong Dal', 'Masoor Dal', 'Ground Nut Oil', 'Mustard Oil', 'Vanaspati',
+#                     'Soya Oil', 'Sunflower Oil', 'Palm Oil', 'Potato', 'Onion', 'Tomato',
+#                     'Sugar', 'Gur', 'Milk', 'Tea', 'Salt'],
+#         var_name='Commodity',
+#         value_name='Price'
+#     )
 
-    df_long = df_long.rename(columns={'index': 'Date'})
-    df_long = df_long.sort_values(['Date', 'Commodity']).reset_index(drop=True)
-    df_long['Date'] = pd.to_datetime(df_long['Date'])
+#     df_long = df_long.rename(columns={'index': 'Date'})
+#     df_long = df_long.sort_values(['Date', 'Commodity']).reset_index(drop=True)
+#     df_long['Date'] = pd.to_datetime(df_long['Date'])
 
-    return df_long
+#     return df_long
 
-# Load and preprocess production data (Cached function)
-@st.cache_data
-def load_production_data():
-    agri_prod = pd.read_excel('dca_data.xlsx', sheet_name='test')
-    agri_prod['Crop'] = agri_prod['Crop'].fillna(method='ffill')
+# # Load and preprocess production data (Cached function)
+# @st.cache_data
+# def load_production_data():
+#     agri_prod = pd.read_excel('dca_data.xlsx', sheet_name='test')
+#     agri_prod['Crop'] = agri_prod['Crop'].fillna(method='ffill')
     
-    # Convert the Year columns to a consistent format
-    agri_prod.columns = [str(int(col.split('-')[0]) + 1) if isinstance(col, str) and '-' in col else col for col in agri_prod.columns]
+#     # Convert the Year columns to a consistent format
+#     agri_prod.columns = [str(int(col.split('-')[0]) + 1) if isinstance(col, str) and '-' in col else col for col in agri_prod.columns]
     
-    # Convert to long format, including the totals
-    agri_prod_long = pd.melt(agri_prod,
-                             id_vars=['Crop', 'Season'],
-                             var_name='Year',
-                             value_name='Value')
+#     # Convert to long format, including the totals
+#     agri_prod_long = pd.melt(agri_prod,
+#                              id_vars=['Crop', 'Season'],
+#                              var_name='Year',
+#                              value_name='Value')
     
-    # Convert Year column to numeric
-    agri_prod_long['Year'] = pd.to_numeric(agri_prod_long['Year'].apply(lambda x: x[:2] + x[-2:]))
+#     # Convert Year column to numeric
+#     agri_prod_long['Year'] = pd.to_numeric(agri_prod_long['Year'].apply(lambda x: x[:2] + x[-2:]))
     
-    return agri_prod_long
+#     return agri_prod_long
 
-# Load and preprocess horticulture data
-@st.cache_data
-def load_horticulture_data():
-    horti_df = pd.read_excel('dca_data.xlsx', sheet_name='horti', header=[0, 1], index_col=[0])
-    horti_df = horti_df.reset_index()
-    horti_df.columns = [f"{col[0]}_{col[1]}" if isinstance(col, tuple) else col for col in horti_df.columns]
+# # Load and preprocess horticulture data
+# @st.cache_data
+# def load_horticulture_data():
+#     horti_df = pd.read_excel('dca_data.xlsx', sheet_name='horti', header=[0, 1], index_col=[0])
+#     horti_df = horti_df.reset_index()
+#     horti_df.columns = [f"{col[0]}_{col[1]}" if isinstance(col, tuple) else col for col in horti_df.columns]
 
-    crops_col = horti_df.columns[0]
-    horti_long = pd.melt(horti_df, id_vars=[crops_col], var_name='Year_Metric', value_name='Value')
-    horti_long[['Year', 'Metric']] = horti_long['Year_Metric'].str.rsplit('_', n=1, expand=True)
-    horti_long = horti_long.pivot_table(values='Value', index=[crops_col, 'Year'], columns='Metric', aggfunc='first').reset_index()
-    horti_long = horti_long.rename(columns={crops_col: 'Crops', 'Area': 'Area_in_hectares', 'Production': 'Production_in_tonnes'})
-    horti_long = horti_long[~horti_long['Crops'].isin(["Fruits", 'Citrus', 'Vegetables'])]
-    horti_long['Year'] = horti_long['Year'].apply(lambda x: x.strip()[:2] + x.strip()[-2:])
-    horti_long.columns = ['Crops', 'Year', 'Area', 'Production_in_tonnes']
+#     crops_col = horti_df.columns[0]
+#     horti_long = pd.melt(horti_df, id_vars=[crops_col], var_name='Year_Metric', value_name='Value')
+#     horti_long[['Year', 'Metric']] = horti_long['Year_Metric'].str.rsplit('_', n=1, expand=True)
+#     horti_long = horti_long.pivot_table(values='Value', index=[crops_col, 'Year'], columns='Metric', aggfunc='first').reset_index()
+#     horti_long = horti_long.rename(columns={crops_col: 'Crops', 'Area': 'Area_in_hectares', 'Production': 'Production_in_tonnes'})
+#     horti_long = horti_long[~horti_long['Crops'].isin(["Fruits", 'Citrus', 'Vegetables'])]
+#     horti_long['Year'] = horti_long['Year'].apply(lambda x: x.strip()[:2] + x.strip()[-2:])
+#     horti_long.columns = ['Crops', 'Year', 'Area', 'Production_in_tonnes']
     
-    return horti_long
+#     return horti_long
 
 # Function to get latest production and change in value for a specific crop
 def get_latest_and_change(df, crop, metric='Production_in_tonnes'):
@@ -97,11 +97,11 @@ def get_latest_and_change(df, crop, metric='Production_in_tonnes'):
     change = 100 * (latest - previous) / previous
     return latest, change
 
-# Load the GeoJSON file for Indian states
-@st.cache_data
-def load_geojson():
-    with open('india_states.geojson', 'r') as f:
-        return json.load(f)
+# # Load the GeoJSON file for Indian states
+# @st.cache_data
+# def load_geojson():
+#     with open('india_states.geojson', 'r') as f:
+#         return json.load(f)
 
 # Helper function to extract data from the balloon text
 def extract_data(balloon_text):
@@ -593,5 +593,4 @@ def fetch_major_producers(commodity):
         st.error(f"Error fetching data: {str(e)}")
         return None
 
-def load_daily_arrival_data():
-        return pd.read_csv("commodity_data.csv")
+
