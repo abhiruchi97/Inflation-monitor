@@ -197,7 +197,7 @@ with col4:
 
 tab1, tab2, tab3, tab5 = st.tabs(["DCA Retail Price Trends", 
                                   "Rainfall Deviation", 
-                                  "Agricultural Production Trends",
+                                  "Food Production Trends",
                                   "Daily Arrivals"])
 
 with tab1:
@@ -364,102 +364,102 @@ with tab2:
     st.dataframe(df_rain.round(1))
 
 with tab3:
-    st.header("Food Production | Yearly")
+    # st.header("Food Production | Yearly")
 
-    # Separate the total production data for calculation purposes
-    agri_prod_totals = agri_prod_long[agri_prod_long['Season'] == 'Total']
+    # # Separate the total production data for calculation purposes
+    # agri_prod_totals = agri_prod_long[agri_prod_long['Season'] == 'Total']
 
-    # Filter the data for non-total seasonal production for visualization
-    agri_prod_seasonal = agri_prod_long[agri_prod_long['Season'] != 'Total']
+    # # Filter the data for non-total seasonal production for visualization
+    # agri_prod_seasonal = agri_prod_long[agri_prod_long['Season'] != 'Total']
 
-    # Get data for the latest year
-    latest_year = agri_prod_long['Year'].max()
-    previous_year = latest_year - 1
+    # # Get data for the latest year
+    # latest_year = agri_prod_long['Year'].max()
+    # previous_year = latest_year - 1
 
-    # Calculate total production metrics using the specific "Total Food Production" row
-    total_production_latest = agri_prod_totals[(agri_prod_totals['Crop'] == 'Total Food Production') & 
-                                            (agri_prod_totals['Year'] == latest_year)]['Value'].sum()
-    total_production_previous = agri_prod_totals[(agri_prod_totals['Crop'] == 'Total Food Production') & 
-                                                (agri_prod_totals['Year'] == previous_year)]['Value'].sum()
-    total_production_delta = ((total_production_latest - total_production_previous) / total_production_previous) * 100
+    # # Calculate total production metrics using the specific "Total Food Production" row
+    # total_production_latest = agri_prod_totals[(agri_prod_totals['Crop'] == 'Total Food Production') & 
+    #                                         (agri_prod_totals['Year'] == latest_year)]['Value'].sum()
+    # total_production_previous = agri_prod_totals[(agri_prod_totals['Crop'] == 'Total Food Production') & 
+    #                                             (agri_prod_totals['Year'] == previous_year)]['Value'].sum()
+    # total_production_delta = ((total_production_latest - total_production_previous) / total_production_previous) * 100
 
-    # # Calculate metrics for Cereals, Pulses, and Oilseeds using only "Total" season rows
+    # # # Calculate metrics for Cereals, Pulses, and Oilseeds using only "Total" season rows
     # cereal_value, cereal_delta = calculate_group_metrics('Total Cereals', agri_prod_totals)
     # pulse_value, pulse_delta = calculate_group_metrics('Total Pulses', agri_prod_totals)
     # oilseed_value, oilseed_delta = calculate_group_metrics('Oil', agri_prod_totals)
 
-    # # Create four columns for metrics
-    # col1, col2, col3, col4 = st.columns(4)
+    # # # Create four columns for metrics
+    # # col1, col2, col3, col4 = st.columns(4)
 
-    # # Display metrics in each column
-    # col1.metric(label="Total Production", value=f"{total_production_latest:.0f} lakh MT", delta=f"{total_production_delta:.2f}%")
-    # col2.metric(label="Cereals Production", value=f"{cereal_value:.0f} lakh MT", delta=f"{cereal_delta:.2f}%")
-    # col3.metric(label="Pulses Production", value=f"{pulse_value:.0f} lakh MT", delta=f"{pulse_delta:.2f}%")
-    # col4.metric(label="Oilseeds Production", value=f"{oilseed_value:.0f} lakh MT", delta=f"{oilseed_delta:.2f}%")
+    # # # Display metrics in each column
+    # # col1.metric(label="Total Production", value=f"{total_production_latest:.0f} lakh MT", delta=f"{total_production_delta:.2f}%")
+    # # col2.metric(label="Cereals Production", value=f"{cereal_value:.0f} lakh MT", delta=f"{cereal_delta:.2f}%")
+    # # col3.metric(label="Pulses Production", value=f"{pulse_value:.0f} lakh MT", delta=f"{pulse_delta:.2f}%")
+    # # col4.metric(label="Oilseeds Production", value=f"{oilseed_value:.0f} lakh MT", delta=f"{oilseed_delta:.2f}%")
 
-    # Create two columns for plots
-    plot_col1, plot_col2 = st.columns(2)
+    # # Create two columns for plots
+    # plot_col1, plot_col2 = st.columns(2)
 
-    # Plot 1: Dropdown for individual crop selection
-    with plot_col1:
-        selected_crop = st.selectbox('Select a crop', options=sorted(agri_prod_seasonal['Crop'].unique()), index =18)
+    # # Plot 1: Dropdown for individual crop selection
+    # with plot_col1:
+    #     selected_crop = st.selectbox('Select a crop', options=sorted(agri_prod_seasonal['Crop'].unique()), index =18)
 
-        # Filter the dataframe based on user selection
-        filtered_df = agri_prod_seasonal[agri_prod_seasonal['Crop'] == selected_crop]
+    #     # Filter the dataframe based on user selection
+    #     filtered_df = agri_prod_seasonal[agri_prod_seasonal['Crop'] == selected_crop]
 
-        # Create the stacked bar chart for production trends with seasonal breakdown
-        fig1 = px.bar(filtered_df,
-                    x='Year',
-                    y='Value',
-                    color='Season',
-                    labels={'Value': 'Production (in lakh tonnes)'},
-                    title=f'Production Trend for {selected_crop}',
-                    height=600)
+    #     # Create the stacked bar chart for production trends with seasonal breakdown
+    #     fig1 = px.bar(filtered_df,
+    #                 x='Year',
+    #                 y='Value',
+    #                 color='Season',
+    #                 labels={'Value': 'Production (in lakh tonnes)'},
+    #                 title=f'Production Trend for {selected_crop}',
+    #                 height=600)
 
-        # Update layout for better readability
-        fig1.update_layout(legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
+    #     # Update layout for better readability
+    #     fig1.update_layout(legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
 
-        # Display the chart
-        st.plotly_chart(fig1, use_container_width=True)
+    #     # Display the chart
+    #     st.plotly_chart(fig1, use_container_width=True)
 
-    # Plot 2: Bar plot for Year-on-Year percentage changes of the selected crop for the last 10 years using agri_prod_totals
-    with plot_col2:
-        # Filter data for the selected crop using agri_prod_totals
-        selected_crop_totals_df = agri_prod_totals[agri_prod_totals['Crop'] == selected_crop]
+    # # Plot 2: Bar plot for Year-on-Year percentage changes of the selected crop for the last 10 years using agri_prod_totals
+    # with plot_col2:
+    #     # Filter data for the selected crop using agri_prod_totals
+    #     selected_crop_totals_df = agri_prod_totals[agri_prod_totals['Crop'] == selected_crop]
 
-        # Calculate the Year-on-Year percentage change
-        selected_crop_totals_df = selected_crop_totals_df.sort_values(by='Year').reset_index(drop=True)
-        selected_crop_totals_df['YoY_Change'] = selected_crop_totals_df['Value'].pct_change() * 100
+    #     # Calculate the Year-on-Year percentage change
+    #     selected_crop_totals_df = selected_crop_totals_df.sort_values(by='Year').reset_index(drop=True)
+    #     selected_crop_totals_df['YoY_Change'] = selected_crop_totals_df['Value'].pct_change() * 100
 
-        # Filter to only include the last 10 years of data
-        selected_crop_totals_df_last_10_years = selected_crop_totals_df.tail(10)
+    #     # Filter to only include the last 10 years of data
+    #     selected_crop_totals_df_last_10_years = selected_crop_totals_df.tail(10)
 
-        # Create a bar plot for Year-on-Year percentage changes for the last 10 years
-        fig2 = px.bar(
-            selected_crop_totals_df_last_10_years,
-            x='Year',
-            y='YoY_Change',
-            text=selected_crop_totals_df_last_10_years['YoY_Change'].round(1),
-            labels={'YoY_Change': 'Y-o-Y Change (%)'},
-            title=f'Y-o-Y Change (%) in Production for {selected_crop} (Last 10 Years)',
-            height=600,
-            color_discrete_sequence=['#1f77b4']
-        )
+    #     # Create a bar plot for Year-on-Year percentage changes for the last 10 years
+    #     fig2 = px.bar(
+    #         selected_crop_totals_df_last_10_years,
+    #         x='Year',
+    #         y='YoY_Change',
+    #         text=selected_crop_totals_df_last_10_years['YoY_Change'].round(1),
+    #         labels={'YoY_Change': 'Y-o-Y Change (%)'},
+    #         title=f'Y-o-Y Change (%) in Production for {selected_crop} (Last 10 Years)',
+    #         height=600,
+    #         color_discrete_sequence=['#1f77b4']
+    #     )
 
-        # Update the bar plot's layout for better readability
-        fig2.update_layout(
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-            yaxis_title='Y-o-Y Change (%)',
-            xaxis_title='Year'
-        )
-        fig2.update_traces(textposition='outside')
+    #     # Update the bar plot's layout for better readability
+    #     fig2.update_layout(
+    #         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+    #         yaxis_title='Y-o-Y Change (%)',
+    #         xaxis_title='Year'
+    #     )
+    #     fig2.update_traces(textposition='outside')
 
-        # Display the chart
-        st.plotly_chart(fig2, use_container_width=True)
+    #     # Display the chart
+    #     st.plotly_chart(fig2, use_container_width=True)
 
-    # Optional: Display the filtered dataframe
-    if st.checkbox('Show data'):
-        st.write(filtered_df)
+    # # Optional: Display the filtered dataframe
+    # if st.checkbox('Show data'):
+    #     st.write(filtered_df)
         
     st.header("Horticultural Production | Yearly")
     
@@ -595,7 +595,7 @@ with tab5:
     with col1:
         start_date = st.date_input("Start Date", start_of_current_month)
     with col2:
-        end_date = st.date_input("End Date", end_date_default)
+        end_date = st.date_input("End Date", data['Date'].max(), max_value=data['Date'].max())
 
     # Filter data based on selections for seasonality analysis
     filtered_data = data[
@@ -630,7 +630,7 @@ with tab5:
                             (data['Commodity'] == selected_commodity) & 
                             (data['Date'].dt.year == year) & 
                             (data['Date'].dt.month == month) & 
-                            (data['Date'].dt.day <= current_day)
+                            (data['Date'].dt.day <= end_date.day)
                         ]
                     else:
                         # For other months, include the full month's data
@@ -639,7 +639,7 @@ with tab5:
                             (data['Date'].dt.year == year) & 
                             (data['Date'].dt.month == month)
                         ]
-                    total_value = monthly_data['Total Value'].sum()
+                    total_value = monthly_data['Total Value'].sum()/1000
                     if total_value > 0:  # Only include months with data
                         results.append({
                             'Year': year,
@@ -658,7 +658,7 @@ with tab5:
             y='Total Value', 
             color='Year', 
             title=f'Monthly Arrival Trend for {selected_commodity.capitalize()}',
-            labels={'Month': 'Month', 'Total Value': 'Total Arrivals (tonnes)'},
+            labels={'Month': 'Month', 'Total Value': 'Total Arrivals (thousand tonnes)'},
             markers=True  # Add markers for better visibility
         )
 
@@ -702,14 +702,14 @@ with tab5:
         )
 
         # Sum arrivals for each year
-        seasonality_summary = past_years_data.groupby('Year')['Total Value'].sum().reset_index()
+        seasonality_summary = past_years_data.groupby('Year')['Total Value'].sum().div(1000).reset_index()
 
         # Plot bar chart for seasonality
         fig3 = px.bar(
             seasonality_summary, 
             x='Year', 
             y='Total Value', 
-            title=f'Monthly arrivals as on {current_date.date()} vis-a-vis previous years',
+            title=f'Monthly arrivals as on {end_date} vis-a-vis previous years',
             color_discrete_sequence=['#9467bd']  # Use the orange color from the Pastel palette
         )
 
@@ -722,7 +722,7 @@ with tab5:
         # Improve layout and aesthetics
         fig3.update_layout(
             xaxis_title="Year",
-            yaxis_title="Total Arrivals (tonnes)",
+            yaxis_title="Total Arrivals (thousand tonnes)",
             showlegend=False,  # Hide legend since colors are for years
             template="plotly_white"  # Use a clean and modern template
         )
