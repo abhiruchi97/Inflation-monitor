@@ -189,10 +189,15 @@ with col4:
                 previous = f"{cpi_fuel_metrics['previous mom']}")
 
 
-tab1, tab2, tab3, tab4, tab5 = st.tabs(["DCA Retail Price Trends", 
+# tab1, tab2, tab3, tab4, tab5 = st.tabs(["DCA Retail Price Trends", 
+#                                   "Rainfall Deviation", 
+#                                   "Agricultural Production Trends", 
+#                                   "Arrivals and Wholesale Prices",
+#                                   "Daily Arrivals"])
+
+tab1, tab2, tab3, tab5 = st.tabs(["DCA Retail Price Trends", 
                                   "Rainfall Deviation", 
-                                  "Agricultural Production Trends", 
-                                  "Arrivals and Wholesale Prices",
+                                  "Agricultural Production Trends",
                                   "Daily Arrivals"])
 
 with tab1:
@@ -407,7 +412,7 @@ with tab3:
                     x='Year',
                     y='Value',
                     color='Season',
-                    labels={'Value': 'Production'},
+                    labels={'Value': 'Production (in lakh tonnes)'},
                     title=f'Production Trend for {selected_crop}',
                     height=600)
 
@@ -435,8 +440,8 @@ with tab3:
             x='Year',
             y='YoY_Change',
             text=selected_crop_totals_df_last_10_years['YoY_Change'].round(1),
-            labels={'YoY_Change': 'Y-o-Y (%)'},
-            title=f'Y-o-Y (%) Change in Production for {selected_crop} (Last 10 Years)',
+            labels={'YoY_Change': 'Y-o-Y Change (%)'},
+            title=f'Y-o-Y Change (%) in Production for {selected_crop} (Last 10 Years)',
             height=600,
             color_discrete_sequence=['#1f77b4']
         )
@@ -444,7 +449,7 @@ with tab3:
         # Update the bar plot's layout for better readability
         fig2.update_layout(
             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-            yaxis_title='Y-o-Y % Change',
+            yaxis_title='Y-o-Y Change (%)',
             xaxis_title='Year'
         )
         fig2.update_traces(textposition='outside')
@@ -471,66 +476,77 @@ with tab3:
     # Create two columns for plots
     plot_col1, plot_col2 = st.columns(2)
 
+    # with plot_col1:
+    #     selected_crop = st.selectbox('Select a crop', options=sorted(horti_long['Crops'].unique()))
+    #     filtered_df = horti_long[horti_long['Crops'] == selected_crop].sort_values(by='Year')
+
+    #     fig1 = px.bar(filtered_df, x='Year', y='Production (in tonnes)', title=f'Production Trend for {selected_crop}')
+    #     fig1.add_scatter(x=filtered_df['Year'], y=filtered_df['Area'], mode='lines+markers', name='Area', yaxis='y2')
+    #     fig1.update_layout(yaxis2=dict(title='Area (hectares)', overlaying='y', side='right', showgrid=False))
+    #     st.plotly_chart(fig1, use_container_width=True)
+
     with plot_col1:
-        selected_crop = st.selectbox('Select a crop', options=sorted(horti_long['Crops'].unique()))
+        selected_crop = st.selectbox('Select a crop', 
+                                    options=sorted(horti_long['Crops'].unique()),
+                                    default='onion')  # Using default parameter directly
         filtered_df = horti_long[horti_long['Crops'] == selected_crop].sort_values(by='Year')
 
-        fig1 = px.bar(filtered_df, x='Year', y='Production_in_tonnes', title=f'Production Trend for {selected_crop}')
+        fig1 = px.bar(filtered_df, x='Year', y='Production (in tonnes)', title=f'Production Trend for {selected_crop}')
         fig1.add_scatter(x=filtered_df['Year'], y=filtered_df['Area'], mode='lines+markers', name='Area', yaxis='y2')
         fig1.update_layout(yaxis2=dict(title='Area (hectares)', overlaying='y', side='right', showgrid=False))
         st.plotly_chart(fig1, use_container_width=True)
 
     with plot_col2:
-        filtered_df['YoY_Change'] = filtered_df['Production_in_tonnes'].pct_change() * 100
-        fig2 = px.bar(filtered_df.tail(10), x='Year', y='YoY_Change', 
-                    text=filtered_df.tail(10)['YoY_Change'].round(1),
-                    title=f'Y-o-Y Change in Production for {selected_crop}',
+        filtered_df['YoY_Change'] = filtered_df['Production (in tonnes)'].pct_change() * 100
+        fig2 = px.bar(filtered_df.tail(10), x='Year', y='Y-o-Y Change (%)', 
+                    text=filtered_df.tail(10)['Y-o-Y Change (%)'].round(1),
+                    title=f'Y-o-Y Change (%) in Production for {selected_crop}',
                     color_discrete_sequence=['#1f77b4'])
         fig2.update_traces(textposition='outside')
         st.plotly_chart(fig2, use_container_width=True)
 
-with tab4:
-    commodity_dict = {
-    "Gram": 1, "Groundnut": 3, "Masur/Lentil (Dal/Split)": 5, "Groundnut Oil": 4, "Lentil": 6, "Moong (Dal/Split)": 7, "Moong": 8, "Onion": 9,
-    "Paddy": 10, "Potato": 12, "Rapeseed & Mustard Oil": 14, "Rapeseed & Mustard": 13, "Rice": 15, "Soybean": 16, "Sunflower": 18,
-    "Tur (Dal/Split)": 21, "Tomato": 20, "Tur": 22, "Urad (Dal/Split)": 23, "Urad": 24, "Wheat Atta": 26, "Wheat": 25, "Sesamum": 27,
-    "Avare Dal": 32, "Bajra": 33, "Barley": 34, "Castorseed": 36, "Cotton": 37, "Foxtail Millet": 41, "Cowpea": 40, "Jute": 45,
-    "Guarseed": 43, "Jowar": 44, "Kulthi": 48, "Kodo Millet": 47, "Lakh": 49, "Linseed": 50, "Maize": 53, "Nigerseed": 56, "Peas": 58,
-    "Ragi": 62, "Ramdana": 64, "Safflower": 66, "Sannhemp": 69, "Sugarcane": 72, "Tobacco": 74, "Select":0}
+# with tab4:
+#     commodity_dict = {
+#     "Gram": 1, "Groundnut": 3, "Masur/Lentil (Dal/Split)": 5, "Groundnut Oil": 4, "Lentil": 6, "Moong (Dal/Split)": 7, "Moong": 8, "Onion": 9,
+#     "Paddy": 10, "Potato": 12, "Rapeseed & Mustard Oil": 14, "Rapeseed & Mustard": 13, "Rice": 15, "Soybean": 16, "Sunflower": 18,
+#     "Tur (Dal/Split)": 21, "Tomato": 20, "Tur": 22, "Urad (Dal/Split)": 23, "Urad": 24, "Wheat Atta": 26, "Wheat": 25, "Sesamum": 27,
+#     "Avare Dal": 32, "Bajra": 33, "Barley": 34, "Castorseed": 36, "Cotton": 37, "Foxtail Millet": 41, "Cowpea": 40, "Jute": 45,
+#     "Guarseed": 43, "Jowar": 44, "Kulthi": 48, "Kodo Millet": 47, "Lakh": 49, "Linseed": 50, "Maize": 53, "Nigerseed": 56, "Peas": 58,
+#     "Ragi": 62, "Ramdana": 64, "Safflower": 66, "Sannhemp": 69, "Sugarcane": 72, "Tobacco": 74, "Select":0}
     
-    st.subheader("Arrivals and Wholesale Prices")
-    url_arr = "https://upag.gov.in/dash-reports/pricesmonthcomparison?rtab=Analytics&rtype=dashboards"
-    st.write("Data Source: [https://upag.gov.in/dash-reports/pricesmonthcomparison?rtab=Analytics&rtype=dashboards](%s)" % url_arr)
+#     st.subheader("Arrivals and Wholesale Prices")
+#     url_arr = "https://upag.gov.in/dash-reports/pricesmonthcomparison?rtab=Analytics&rtype=dashboards"
+#     st.write("Data Source: [https://upag.gov.in/dash-reports/pricesmonthcomparison?rtab=Analytics&rtype=dashboards](%s)" % url_arr)
     
-    # Create dropdown with None as default
-    selected_commodity = st.selectbox(
-        'Select a commodity',
-        options=['Select'] + sorted(commodity_dict.keys()),  # Add None as first option
-        index=0  # Default to None (first item)
-    )
+#     # Create dropdown with None as default
+#     selected_commodity = st.selectbox(
+#         'Select a commodity',
+#         options=['Select'] + sorted(commodity_dict.keys()),  # Add None as first option
+#         index=0  # Default to None (first item)
+#     )
 
-    # Only fetch and display data if a commodity is selected
-    if selected_commodity != 'Select':
-        # Get the ID of selected commodity
-        selected_commodity_id = commodity_dict[selected_commodity]
+#     # Only fetch and display data if a commodity is selected
+#     if selected_commodity != 'Select':
+#         # Get the ID of selected commodity
+#         selected_commodity_id = commodity_dict[selected_commodity]
         
-        # Show loading message while fetching data
-        with st.spinner(f'Loading data for {selected_commodity}...'):
-            data_object = fetch_and_process_data(
-                commodity_id=selected_commodity_id,
-                month_from=1,
-                year_from=2014,
-                month_to=12,
-                year_to=dt.datetime.today().year
-            )
-            data_arr = data_object.dataframe
-            title_arrivals = data_object.title
+#         # Show loading message while fetching data
+#         with st.spinner(f'Loading data for {selected_commodity}...'):
+#             data_object = fetch_and_process_data(
+#                 commodity_id=selected_commodity_id,
+#                 month_from=1,
+#                 year_from=2014,
+#                 month_to=12,
+#                 year_to=dt.datetime.today().year
+#             )
+#             data_arr = data_object.dataframe
+#             title_arrivals = data_object.title
             
-            # Display the plot
-            plot_comparison(data_arr)
-    else:
-        # Optional: Display a message when no commodity is selected
-        st.write("Please select a commodity to view the data.")
+#             # Display the plot
+#             plot_comparison(data_arr)
+#     else:
+#         # Optional: Display a message when no commodity is selected
+#         st.write("Please select a commodity to view the data.")
 
 with tab5:
     # Load data
