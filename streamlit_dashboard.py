@@ -465,7 +465,7 @@ with tab3:
     
     # Display production metrics
     col1, col2, col3 = st.columns(3)
-    citrus_latest, citrus_change = get_latest_and_change(horti_long, 'Citrus Total (i to iv)')
+    citrus_latest, citrus_change = get_latest_and_change(horti_long, 'Citrus Total')
     fruits_latest, fruits_change = get_latest_and_change(horti_long, 'Total Fruits')
     veg_latest, veg_change = get_latest_and_change(horti_long, 'Total Vegetables')
 
