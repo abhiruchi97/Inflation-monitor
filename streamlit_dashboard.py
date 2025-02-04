@@ -485,21 +485,26 @@ with tab3:
     #     fig1.update_layout(yaxis2=dict(title='Area (hectares)', overlaying='y', side='right', showgrid=False))
     #     st.plotly_chart(fig1, use_container_width=True)
 
-    with plot_col1:
-        selected_crop = st.selectbox('Select a crop', 
-                                    options=sorted(horti_long['Crops'].unique()),
-                                    default='onion')  # Using default parameter directly
-        filtered_df = horti_long[horti_long['Crops'] == selected_crop].sort_values(by='Year')
+with plot_col1:
+    # Get the sorted list of crops
+    sorted_crops = sorted(horti_long['Crops'].unique())
+    # Find the index of 'onion' in the sorted list
+    default_index = sorted_crops.index('Onion')
+    
+    selected_crop = st.selectbox('Select a crop', 
+                                options=sorted_crops,
+                                index=default_index)
+    filtered_df = horti_long[horti_long['Crops'] == selected_crop].sort_values(by='Year')
 
-        fig1 = px.bar(filtered_df, x='Year', y='Production (in tonnes)', title=f'Production Trend for {selected_crop}')
-        fig1.add_scatter(x=filtered_df['Year'], y=filtered_df['Area'], mode='lines+markers', name='Area', yaxis='y2')
-        fig1.update_layout(yaxis2=dict(title='Area (hectares)', overlaying='y', side='right', showgrid=False))
-        st.plotly_chart(fig1, use_container_width=True)
+    fig1 = px.bar(filtered_df, x='Year', y='Production_in_tonnes', title=f'Production Trend for {selected_crop}')
+    fig1.add_scatter(x=filtered_df['Year'], y=filtered_df['Area'], mode='lines+markers', name='Area', yaxis='y2')
+    fig1.update_layout(yaxis2=dict(title='Area (hectares)', overlaying='y', side='right', showgrid=False))
+    st.plotly_chart(fig1, use_container_width=True)
 
     with plot_col2:
-        filtered_df['YoY_Change'] = filtered_df['Production (in tonnes)'].pct_change() * 100
-        fig2 = px.bar(filtered_df.tail(10), x='Year', y='Y-o-Y Change (%)', 
-                    text=filtered_df.tail(10)['Y-o-Y Change (%)'].round(1),
+        filtered_df['YoY_Change'] = filtered_df['Production_in_tonnes'].pct_change() * 100
+        fig2 = px.bar(filtered_df.tail(10), x='Year', y='YoY_Change', 
+                    text=filtered_df.tail(10)['YoY_Change'].round(1),
                     title=f'Y-o-Y Change (%) in Production for {selected_crop}',
                     color_discrete_sequence=['#1f77b4'])
         fig2.update_traces(textposition='outside')
