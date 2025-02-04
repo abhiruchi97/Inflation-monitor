@@ -378,19 +378,19 @@ with tab3:
                                                 (agri_prod_totals['Year'] == previous_year)]['Value'].sum()
     total_production_delta = ((total_production_latest - total_production_previous) / total_production_previous) * 100
 
-    # Calculate metrics for Cereals, Pulses, and Oilseeds using only "Total" season rows
-    cereal_value, cereal_delta = calculate_group_metrics('Total Cereals', agri_prod_totals)
-    pulse_value, pulse_delta = calculate_group_metrics('Total Pulses', agri_prod_totals)
-    oilseed_value, oilseed_delta = calculate_group_metrics('Oil', agri_prod_totals)
+    # # Calculate metrics for Cereals, Pulses, and Oilseeds using only "Total" season rows
+    # cereal_value, cereal_delta = calculate_group_metrics('Total Cereals', agri_prod_totals)
+    # pulse_value, pulse_delta = calculate_group_metrics('Total Pulses', agri_prod_totals)
+    # oilseed_value, oilseed_delta = calculate_group_metrics('Oil', agri_prod_totals)
 
-    # Create four columns for metrics
-    col1, col2, col3, col4 = st.columns(4)
+    # # Create four columns for metrics
+    # col1, col2, col3, col4 = st.columns(4)
 
-    # Display metrics in each column
-    col1.metric(label="Total Production", value=f"{total_production_latest:.0f} lakh MT", delta=f"{total_production_delta:.2f}%")
-    col2.metric(label="Cereals Production", value=f"{cereal_value:.0f} lakh MT", delta=f"{cereal_delta:.2f}%")
-    col3.metric(label="Pulses Production", value=f"{pulse_value:.0f} lakh MT", delta=f"{pulse_delta:.2f}%")
-    col4.metric(label="Oilseeds Production", value=f"{oilseed_value:.0f} lakh MT", delta=f"{oilseed_delta:.2f}%")
+    # # Display metrics in each column
+    # col1.metric(label="Total Production", value=f"{total_production_latest:.0f} lakh MT", delta=f"{total_production_delta:.2f}%")
+    # col2.metric(label="Cereals Production", value=f"{cereal_value:.0f} lakh MT", delta=f"{cereal_delta:.2f}%")
+    # col3.metric(label="Pulses Production", value=f"{pulse_value:.0f} lakh MT", delta=f"{pulse_delta:.2f}%")
+    # col4.metric(label="Oilseeds Production", value=f"{oilseed_value:.0f} lakh MT", delta=f"{oilseed_delta:.2f}%")
 
     # Create two columns for plots
     plot_col1, plot_col2 = st.columns(2)
