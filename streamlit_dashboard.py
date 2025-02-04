@@ -496,9 +496,23 @@ with plot_col1:
                                 index=default_index)
     filtered_df = horti_long[horti_long['Crops'] == selected_crop].sort_values(by='Year')
 
-    fig1 = px.bar(filtered_df, x='Year', y='Production_in_tonnes', title=f'Production Trend for {selected_crop}')
-    fig1.add_scatter(x=filtered_df['Year'], y=filtered_df['Area'], mode='lines+markers', name='Area', yaxis='y2')
-    fig1.update_layout(yaxis2=dict(title='Area (hectares)', overlaying='y', side='right', showgrid=False))
+    fig1 = px.bar(filtered_df, x='Year', y='Production_in_tonnes', 
+                title=f'Production Trend for {selected_crop}',
+                labels = {'Year': 'Year', 'Production_in_tonnes': "Production (in tonnes)"})
+
+    fig1.add_scatter(x=filtered_df['Year'], y=filtered_df['Area'], 
+                    mode='lines+markers', name='Area (RHS)', yaxis='y2')
+
+    fig1.update_layout(
+        yaxis2=dict(title='Area (hectares)', overlaying='y', side='right', showgrid=False),
+        legend=dict(
+            yanchor="top",
+            y=1.09,
+            xanchor="right",
+            x=0.99
+        )
+    )
+
     st.plotly_chart(fig1, use_container_width=True)
 
     with plot_col2:
@@ -506,6 +520,7 @@ with plot_col1:
         fig2 = px.bar(filtered_df.tail(10), x='Year', y='YoY_Change', 
                     text=filtered_df.tail(10)['YoY_Change'].round(1),
                     title=f'Y-o-Y Change (%) in Production for {selected_crop}',
+                    labels = {'Year': 'Year', 'YoY_Change': "Y-o-Y Change"},
                     color_discrete_sequence=['#1f77b4'])
         fig2.update_traces(textposition='outside')
         st.plotly_chart(fig2, use_container_width=True)
