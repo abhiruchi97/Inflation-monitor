@@ -253,7 +253,7 @@ with tab1:
     
     with col2:
         st.subheader("Week-on-Week Momentum (%)")
-        st.write(f"Data as on {df_long['Date'].max().strftime('%d-%m-%Y')}")
+        st.write(f"As per latest data available on DoCA website")
         latest_5_weeks_df = filtered_df_long.groupby('Commodity').apply(lambda x: x.tail(5)).reset_index(drop=True)
         pct_change_table_data = []
         for commodity in commodities:
