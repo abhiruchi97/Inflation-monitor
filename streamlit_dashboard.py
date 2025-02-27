@@ -250,8 +250,10 @@ with tab1:
                     title=f'Price Evolution of {", ".join(commodities)}')
         st.plotly_chart(fig)
 
+    
     with col2:
         st.subheader("Week-on-Week Momentum (%)")
+        st.write(f"Data as on {df_long['Date'].max().strftime('%d-%m-%Y')}")
         latest_5_weeks_df = filtered_df_long.groupby('Commodity').apply(lambda x: x.tail(5)).reset_index(drop=True)
         pct_change_table_data = []
         for commodity in commodities:
@@ -364,6 +366,89 @@ with tab2:
     st.dataframe(df_rain.round(1))
 
 with tab3:
+    st.header("Food Production | Yearly")
+
+    # Original data splitting remains unchanged
+    agri_prod_totals = agri_prod_long[agri_prod_long['Season'] == 'Total']
+    agri_prod_seasonal = agri_prod_long[agri_prod_long['Season'] != 'Total']
+
+    plot_col1, plot_col2 = st.columns(2)
+
+    # First chart (unchanged)
+    with plot_col1:
+        selected_crop = st.selectbox('Select a crop', options=sorted(agri_prod_seasonal['Crop'].unique()), index=18)
+        filtered_df = agri_prod_seasonal[agri_prod_seasonal['Crop'] == selected_crop]
+        fig1 = px.bar(filtered_df, x='Year', y='Value', color='Season',
+                        title=f'Production Trend for {selected_crop}', height=600,
+                        labels = {'Year': 'Year', 'Value': "Production (in lakh tonnes)"})
+        st.plotly_chart(fig1, use_container_width=True)
+
+    # Second chart with season validation
+    with plot_col2:
+        selected_season = st.selectbox(
+            'Select season for Y-o-Y analysis',
+            options=sorted(agri_prod_long['Season'].unique()),
+            index=0
+        )
+
+        # Filter data for selected crop and season
+        yoy_data = agri_prod_long[
+            (agri_prod_long['Crop'] == selected_crop) &
+            (agri_prod_long['Season'] == selected_season)
+        ].sort_values('Year')
+
+        if not yoy_data.empty:
+            latest_year = yoy_data['Year'].max()
+            
+            # Validation for Total season
+            if selected_season == 'Total':
+                # Get all seasons except Total for the crop
+                crop_seasons = agri_prod_seasonal[
+                    agri_prod_seasonal['Crop'] == selected_crop
+                ]['Season'].unique()
+                
+                # Check if latest year has NaNs for any season
+                seasonal_data_check = agri_prod_seasonal[
+                    (agri_prod_seasonal['Crop'] == selected_crop) &
+                    (agri_prod_seasonal['Year'] == latest_year)
+                ]
+                
+                # Identify seasons with NaN values
+                seasons_with_nan = seasonal_data_check[
+                    seasonal_data_check['Value'].isna()
+                ]['Season'].tolist()
+
+                if seasons_with_nan:
+                    st.warning(
+                        f"Data for 'Total' season in the latest year is incomplete. " 
+                        f"Missing data for: {', '.join(seasons_with_nan)}. "
+                        "Excluding latest year from Y-o-Y calculation."
+                    )
+                    yoy_data = yoy_data[yoy_data['Year'] < latest_year]
+
+            # Calculate YoY changes if data remains
+            if not yoy_data.empty:
+                yoy_data['YoY_Change'] = yoy_data['Value'].pct_change().mul(100).round(2)
+                plot_data = yoy_data.tail(10)
+
+                fig2 = px.bar(
+                    plot_data, 
+                    x='Year', 
+                    y='YoY_Change',
+                    title=f'Y-o-Y change (%) in production of {selected_crop} ({selected_season})',
+                    labels={'YoY_Change': 'Y-o-Y Change (%)'},
+                    height=600
+                )
+
+                # Customize data labels
+                fig2.update_traces(textposition='outside')
+
+                st.plotly_chart(fig2, use_container_width=True)
+            else:
+                st.info("No complete data available for YoY analysis")
+        else:
+            st.warning("No data available for selected crop and season combination")
+
     # st.header("Food Production | Yearly")
 
     # # Separate the total production data for calculation purposes
@@ -460,7 +545,7 @@ with tab3:
     # # Optional: Display the filtered dataframe
     # if st.checkbox('Show data'):
     #     st.write(filtered_df)
-        
+
     st.header("Horticultural Production | Yearly")
     
     # Display production metrics
@@ -519,8 +604,8 @@ with plot_col1:
         filtered_df['YoY_Change'] = filtered_df['Production_in_tonnes'].pct_change() * 100
         fig2 = px.bar(filtered_df.tail(10), x='Year', y='YoY_Change', 
                     text=filtered_df.tail(10)['YoY_Change'].round(1),
-                    title=f'Y-o-Y Change (%) in Production for {selected_crop}',
-                    labels = {'Year': 'Year', 'YoY_Change': "Y-o-Y Change"},
+                    title=f'Y-o-Y change (%) in production of {selected_crop}',
+                    labels = {'Year': 'Year', 'YoY_Change': "Y-o-Y Change (%)"},
                     color_discrete_sequence=['#1f77b4'])
         fig2.update_traces(textposition='outside')
         st.plotly_chart(fig2, use_container_width=True)
@@ -583,8 +668,8 @@ with tab5:
     st.title("Mandi Arrival Analysis")
     st.write("Source: https://agmarknet.gov.in/")
 
-    # Filters section
-    st.header("Filters")
+    # # Filters section
+    # st.header("Filters")
 
     # Commodity selection with capitalized names
     commodity_list = data['Commodity'].unique()
