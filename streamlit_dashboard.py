@@ -833,7 +833,7 @@ with tab5:
             seasonality_summary, 
             x='Year', 
             y='Total Value', 
-            title=f'Cumulative arrivals as on {end_date} vis-a-vis previous years',
+            title=f'Cumulative arrivals from {start_date} to {end_date} vis-a-vis previous years',
             color_discrete_sequence=['#9467bd']  # Use the orange color from the Pastel palette
         )
 
