@@ -354,7 +354,7 @@ with tab2:
         # st.write("Data Source: [https://mausam.imd.gov.in/responsive/rainfallinformation_state.php](%s)" % url)
 
     with col2:
-        st.subheader("Major Producers | Statewise")
+        st.subheader("Major Crop Producers | Statewise")
         url_major = "https://upag.gov.in/"
         # st.write("Data Source: [https://upag.gov.in/](%s)" % url_major)
         
@@ -364,9 +364,19 @@ with tab2:
         
         # Only fetch and display data if a commodity is selected
         if selected_commodity != "None":
-            df = fetch_major_producers(selected_commodity)
-            if df is not None:
-                st.dataframe(df.round(1))
+            try:
+                df = fetch_major_producers(selected_commodity)
+                if df is not None:
+                    st.dataframe(df.round(1))
+                else:
+                    st.warning("Production data for the latest year is not available.")
+            except Exception as e:
+                # Suppress the actual error and only show the user-friendly warning
+                st.warning("Production data for the latest year is not available.")
+                # If you want to log the error for debugging but not display it
+                # You could use logging here or print to console
+                # print(f"Debug - Error: {str(e)}")
+
         
     st.subheader("Rainfall Data")
     st.dataframe(df_rain.round(1))
@@ -823,7 +833,7 @@ with tab5:
             seasonality_summary, 
             x='Year', 
             y='Total Value', 
-            title=f'Monthly arrivals as on {end_date} vis-a-vis previous years',
+            title=f'Cumulative arrivals as on {end_date} vis-a-vis previous years',
             color_discrete_sequence=['#9467bd']  # Use the orange color from the Pastel palette
         )
 
