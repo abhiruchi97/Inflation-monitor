@@ -253,7 +253,7 @@ with tab1:
     
     with col2:
         st.subheader("Week-on-Week Momentum (%)")
-        st.write(f"As per latest data available on DoCA website")
+
         latest_5_weeks_df = filtered_df_long.groupby('Commodity').apply(lambda x: x.tail(5)).reset_index(drop=True)
         pct_change_table_data = []
         for commodity in commodities:
@@ -290,6 +290,9 @@ with tab1:
             
             
             st.markdown(pct_change_wide.to_html(escape=False), unsafe_allow_html=True)
+
+            st.write("Note: \n 1. Week-on-week momentum is calculated as per cent change in average weekly prices (excl. weekends).\n 2. As per latest data available on DoCA website.")
+
         else:
             st.write("No data available for the selected period and commodities.")
             
