@@ -198,12 +198,12 @@ with col4:
 tab1, tab2, tab3, tab5 = st.tabs(["DCA Retail Price Trends", 
                                   "Rainfall Deviation", 
                                   "Food Production Trends",
-                                  "Daily Arrivals"])
+                                  "Daily Mandi Arrivals"])
 
 with tab1:
     st.header("DCA Retail Price Trends")
     url_dca = "https://fcainfoweb.nic.in/reports/report_menu_web.aspx"
-    st.write("Data Source: [https://fcainfoweb.nic.in/reports/report_menu_web.aspx](%s)" % url_dca)
+    # st.write("Data Source: [https://fcainfoweb.nic.in/reports/report_menu_web.aspx](%s)" % url_dca)
     
     col1, col2 = st.columns(2)
     
@@ -249,6 +249,7 @@ with tab1:
         fig = px.line(filtered_df_long, x='Date', y='Price', color='Commodity',
                     title=f'Price Evolution of {", ".join(commodities)}')
         st.plotly_chart(fig)
+        st.write("Data Source: [https://fcainfoweb.nic.in/reports/report_menu_web.aspx](%s)" % url_dca)
 
     
     with col2:
@@ -303,7 +304,7 @@ with tab2:
     rainfall_labels = get_rainfall_labels()
     with col1:
         url = "https://mausam.imd.gov.in/responsive/rainfallinformation_state.php"
-        st.write("Data Source: [https://mausam.imd.gov.in/responsive/rainfallinformation_state.php](%s)" % url)
+        # st.write("Data Source: [https://mausam.imd.gov.in/responsive/rainfallinformation_state.php](%s)" % url)
         rainfall_type = st.selectbox(
             "Select Period",
             options=[
@@ -350,14 +351,16 @@ with tab2:
         )
 
         st.plotly_chart(fig)
+        # st.write("Data Source: [https://mausam.imd.gov.in/responsive/rainfallinformation_state.php](%s)" % url)
 
     with col2:
         st.subheader("Major Producers | Statewise")
         url_major = "https://upag.gov.in/"
-        st.write("Data Source: [https://upag.gov.in/](%s)" % url_major)
+        # st.write("Data Source: [https://upag.gov.in/](%s)" % url_major)
         
         # Add None as the first option
         selected_commodity = st.selectbox("Select a commodity:", ["None"] + list_of_crops)
+        st.write("Data Source: [https://upag.gov.in/](%s)" % url_major)
         
         # Only fetch and display data if a commodity is selected
         if selected_commodity != "None":
@@ -367,9 +370,10 @@ with tab2:
         
     st.subheader("Rainfall Data")
     st.dataframe(df_rain.round(1))
+    st.write("Data Source: [https://mausam.imd.gov.in/responsive/rainfallinformation_state.php](%s)" % url)
 
 with tab3:
-    st.header("Food Production | Yearly")
+    st.header("Agriculture Crops Production")
 
     # Original data splitting remains unchanged
     agri_prod_totals = agri_prod_long[agri_prod_long['Season'] == 'Total']
@@ -451,6 +455,10 @@ with tab3:
                 st.info("No complete data available for YoY analysis")
         else:
             st.warning("No data available for selected crop and season combination")
+
+    url_agri = "https://agriwelfare.gov.in/en/AgricultureEstimates"
+    st.write("Data Source: [https://agriwelfare.gov.in/en/AgricultureEstimates](%s)" % url_agri)
+
 
     # st.header("Food Production | Yearly")
 
@@ -549,7 +557,7 @@ with tab3:
     # if st.checkbox('Show data'):
     #     st.write(filtered_df)
 
-    st.header("Horticultural Production | Yearly")
+    st.header("Horticulture Crops Production")
     
     # Display production metrics
     col1, col2, col3 = st.columns(3)
@@ -613,6 +621,9 @@ with plot_col1:
         fig2.update_traces(textposition='outside')
         st.plotly_chart(fig2, use_container_width=True)
 
+    url_horti = "https://agriwelfare.gov.in/en/StatHortEst"
+    st.write("Data Source: [https://agriwelfare.gov.in/en/StatHortEst](%s)" % url_horti)
+
 # with tab4:
 #     commodity_dict = {
 #     "Gram": 1, "Groundnut": 3, "Masur/Lentil (Dal/Split)": 5, "Groundnut Oil": 4, "Lentil": 6, "Moong (Dal/Split)": 7, "Moong": 8, "Onion": 9,
@@ -669,7 +680,7 @@ with tab5:
 
     # Title and description
     st.title("Mandi Arrival Analysis")
-    st.write("Source: https://agmarknet.gov.in/")
+    # st.write("Source: https://agmarknet.gov.in/")
 
     # # Filters section
     # st.header("Filters")
@@ -831,6 +842,7 @@ with tab5:
         )
 
         st.plotly_chart(fig3, use_container_width=True)  # Use full width of the column
+    st.write("Source: https://agmarknet.gov.in/")
 
 st.markdown("""
     <p style="font-size: 14px;">
