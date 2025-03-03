@@ -854,9 +854,9 @@ with tab5:
         st.plotly_chart(fig3, use_container_width=True)  # Use full width of the column
     st.write("Source: https://agmarknet.gov.in/")
 
-st.markdown("""
-    <p style="font-size: 14px;">
-        <strong>Designed and developed by</strong><br>
-        <strong><span style="color: coral;">Prices and Monetary Research Division, DEPR</span></strong>
-    </p>
-""", unsafe_allow_html=True)
+# st.markdown("""
+#     <p style="font-size: 14px;">
+#         <strong>Designed and developed by</strong><br>
+#         <strong><span style="color: coral;">Prices and Monetary Research Division, DEPR</span></strong>
+#     </p>
+# """, unsafe_allow_html=True)
