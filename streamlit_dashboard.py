@@ -91,7 +91,7 @@ def load_dca_data():
 # Load and preprocess production data (Cached function)
 @st.cache_data
 def load_production_data():
-    agri_prod = pd.read_excel('dca_data.xlsx', sheet_name='test')
+    agri_prod = pd.read_excel('dca_data_1.xlsx', sheet_name='test')
     agri_prod['Crop'] = agri_prod['Crop'].fillna(method='ffill')
     
     # Convert the Year columns to a consistent format
@@ -111,7 +111,7 @@ def load_production_data():
 # Load and preprocess horticulture data
 @st.cache_data
 def load_horticulture_data():
-    horti_df = pd.read_excel('dca_data.xlsx', sheet_name='horti', header=[0, 1], index_col=[0])
+    horti_df = pd.read_excel('dca_data_1.xlsx', sheet_name='horti', header=[0, 1], index_col=[0])
     horti_df = horti_df.reset_index()
     horti_df.columns = [f"{col[0]}_{col[1]}" if isinstance(col, tuple) else col for col in horti_df.columns]
 
