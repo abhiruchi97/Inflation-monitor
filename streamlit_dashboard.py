@@ -744,7 +744,7 @@ with tab5:
         #st.subheader(f"Monthly Arrival Trend for {selected_commodity.capitalize()}")
 
         # Function to get monthly sums for January to December for the last 3 years
-        def get_monthly_sums(data, selected_commodity, current_year, current_month, current_day):
+        def get_monthly_sums(data, selected_commodity, current_year, current_month):#, current_day):
             results = []
             for year in range(current_year - 4, current_year + 1):  # Last 3 years
                 for month in range(1, 13):  # January to December
@@ -754,7 +754,7 @@ with tab5:
                             (data['Commodity'] == selected_commodity) & 
                             (data['Date'].dt.year == year) & 
                             (data['Date'].dt.month == month) & 
-                            (data['Date'].dt.day <= end_date.day)
+                            (data['Date'].dt.day <= end_date_default.day)
                         ]
                     else:
                         # For other months, include the full month's data
@@ -773,7 +773,7 @@ with tab5:
             return pd.DataFrame(results)
 
         # Get monthly sums for the last 3 years
-        monthly_sums = get_monthly_sums(data, selected_commodity, current_year, current_month, current_day)
+        monthly_sums = get_monthly_sums(data, selected_commodity, current_year, current_month)#, current_day)
 
         # Plot time series line chart for monthly sums
         fig = px.line(
