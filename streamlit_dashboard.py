@@ -314,7 +314,7 @@ with tab2:
                 {'label': rainfall_labels[3], 'value': 'C'}
             ],
             format_func=lambda x: x['label'],
-            index=3
+            index=2
         )['value']
 
         df_rain = fetch_rainfall_data(rainfall_type)
@@ -359,8 +359,7 @@ with tab2:
         # st.write("Data Source: [https://upag.gov.in/](%s)" % url_major)
         
         # Add None as the first option
-        selected_commodity = st.selectbox("Select a commodity:", ["None"] + list_of_crops)
-        st.write("Data Source: [https://upag.gov.in/](%s)" % url_major)
+        selected_commodity = st.selectbox("Select a commodity:", ["None"] + list_of_crops, index=1)
         
         # Only fetch and display data if a commodity is selected
         if selected_commodity != "None":
@@ -376,6 +375,7 @@ with tab2:
                 # If you want to log the error for debugging but not display it
                 # You could use logging here or print to console
                 # print(f"Debug - Error: {str(e)}")
+        st.write("Data Source: [https://upag.gov.in/](%s)" % url_major)
 
         
     st.subheader("Rainfall Data")
@@ -393,7 +393,10 @@ with tab3:
 
     # First chart (unchanged)
     with plot_col1:
-        selected_crop = st.selectbox('Select a crop', options=sorted(agri_prod_seasonal['Crop'].unique()), index=18)
+        sorted_crops_agri = sorted(agri_prod_seasonal['Crop'].unique())
+        default_ind_agri = sorted_crops_agri.index('Rice')
+
+        selected_crop = st.selectbox('Select a crop', options=sorted_crops_agri, index=default_ind_agri)
         filtered_df = agri_prod_seasonal[agri_prod_seasonal['Crop'] == selected_crop]
         fig1 = px.bar(filtered_df, x='Year', y='Value', color='Season',
                         title=f'Production Trend for {selected_crop}', height=600,
@@ -677,6 +680,8 @@ with plot_col1:
 #         # Optional: Display a message when no commodity is selected
 #         st.write("Please select a commodity to view the data.")
 
+from plotly import graph_objs as go
+
 with tab5:
     # Load data
     data = load_daily_arrival_data()
@@ -796,13 +801,8 @@ with tab5:
 
     # Seasonality Analysis: Bar chart for selected date range (default: start of current month to today)
     with col2:
-        #st.subheader(f"Seasonality Analysis")
-
         # Function to get the same date range for previous years
         def get_previous_years_data(data, start_date, end_date, selected_commodity, years_back):
-            """
-            Retrieve data for the same date range across previous years.
-            """
             results = []
             for i in range(0, years_back + 2):
                 prev_start = start_date - pd.DateOffset(years=i)
@@ -816,7 +816,7 @@ with tab5:
                 results.append(prev_data)
             return pd.concat(results)
 
-        # Get data for the past 3 years
+        # Get data for the past 3 years + current year (total 5 years)
         past_years_data = get_previous_years_data(
             data, 
             pd.to_datetime(start_date), 
@@ -828,30 +828,89 @@ with tab5:
         # Sum arrivals for each year
         seasonality_summary = past_years_data.groupby('Year')['Total Value'].sum().div(1000).reset_index()
 
-        # Plot bar chart for seasonality
+        # Sort years to ensure chronological order
+        seasonality_summary = seasonality_summary.sort_values('Year')
+
+        # Calculate YoY % change
+        seasonality_summary['YoY Change (%)'] = seasonality_summary['Total Value'].pct_change() * 100
+        print(seasonality_summary)
+
+        # Bar chart for arrivals
         fig3 = px.bar(
             seasonality_summary, 
             x='Year', 
             y='Total Value', 
             title=f'Cumulative arrivals from {start_date} to {end_date} vis-a-vis previous years',
-            color_discrete_sequence=['#9467bd']  # Use the orange color from the Pastel palette
+            color_discrete_sequence=['#9467bd']
         )
 
-        # Customize x-axis labels to remove .5
+        # Add YoY % change as text labels on top of bars (from second year onwards)
+        fig3.add_trace(
+            go.Scatter(
+                x=seasonality_summary['Year'][1:], 
+                y=seasonality_summary['Total Value'][1:],  # Slightly above bar height
+                mode='text',
+                text=[
+                    f"{val:.1f}%" if pd.notnull(val) else "" 
+                    for val in seasonality_summary['YoY Change (%)'][1:]
+                ],
+                textposition="top center",
+                textfont=dict(color="white", size=12),
+                showlegend=False
+            )
+        )
+
+        # Clean up x-axis
         fig3.update_xaxes(
-            tickvals=seasonality_summary['Year'],  # Use integer years as tick values
-            ticktext=seasonality_summary['Year'].astype(str)  # Display as strings
+            tickvals=seasonality_summary['Year'],
+            ticktext=seasonality_summary['Year'].astype(str)
         )
 
-        # Improve layout and aesthetics
+        # Layout settings
         fig3.update_layout(
             xaxis_title="Year",
             yaxis_title="Total Arrivals (thousand tonnes)",
-            showlegend=False,  # Hide legend since colors are for years
-            template="plotly_white"  # Use a clean and modern template
+            showlegend=False,
+            template="plotly_white"
         )
 
-        st.plotly_chart(fig3, use_container_width=True)  # Use full width of the column
+        st.plotly_chart(fig3, use_container_width=True)
+    
+        # Create empty list to store yoy change values
+    commodity_yoy_list = []
+
+    # Loop through each commodity to calculate YoY %
+    for commodity in commodity_list:
+        try:
+            past_years_data = get_previous_years_data(
+                data, pd.to_datetime(start_date), pd.to_datetime(end_date), commodity, years_back=3
+            )
+            seasonality_summary = past_years_data.groupby('Year')['Total Value'].sum().div(1000).reset_index()
+            seasonality_summary = seasonality_summary.sort_values('Year')
+            seasonality_summary['YoY Change (%)'] = seasonality_summary['Total Value'].pct_change() * 100
+
+            latest_yoy = seasonality_summary.iloc[-1]['YoY Change (%)']  # Latest year YoY
+            commodity_yoy_list.append({
+                'Commodity': commodity.capitalize(),
+                'YoY Change (%)': round(latest_yoy, 1) if pd.notnull(latest_yoy) else None
+            })
+        except Exception as e:
+            # Handle edge cases (e.g., not enough data for the commodity)
+            commodity_yoy_list.append({
+                'Commodity': commodity.capitalize(),
+                'YoY Change (%)': None
+            })
+
+    # Convert to dataframe
+    yoy_df = pd.DataFrame(commodity_yoy_list)
+
+    # Optional: sort by YoY% descending
+    yoy_df_sorted = yoy_df.sort_values(by='YoY Change (%)', ascending=False)
+
+    # Display table
+    st.subheader(f"Y-o-Y % change in arrivals from {start_date} to {end_date} (Latest Year)")
+    st.dataframe(yoy_df_sorted.reset_index(drop=True))
+
     st.write("Source: https://agmarknet.gov.in/")
 
 # st.markdown("""
