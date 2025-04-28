@@ -1,0 +1,13 @@
+value,last_update_time,forecast_date,type,indicator,period
+3.6,2025-04-09,2025-04-01,Annual,Core,Current Fiscal Year
+4.0,2025-04-09,2025-04-01,Quarterly,Core,Current Quarter
+4.2,2025-04-09,2025-04-01,Quarterly,Core,Next Quarter
+4.3,2025-04-09,2025-04-01,Quarterly,Core,Next 2 Quarters
+4.7,2025-04-09,2025-04-01,Annual,Headline,Current Fiscal Year
+4.0,2025-04-09,2025-04-01,Quarterly,Headline,Next Quarter
+4.2,2025-04-09,2025-04-01,Quarterly,Core,Next 3 Quarters
+4.3,2025-04-09,2025-04-01,Annual,Core,Next Fiscal Year
+4.0,2025-04-09,2025-04-01,Quarterly,Headline,Next 2 Quarters
+3.9,2025-04-09,2025-04-01,Quarterly,Headline,Next 3 Quarters
+3.9,2025-04-09,2025-04-01,Quarterly,Headline,Current Quarter
+4.2,2025-04-09,2025-04-01,Annual,Headline,Next Fiscal Year

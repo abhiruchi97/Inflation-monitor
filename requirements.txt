@@ -7,4 +7,6 @@ Requests==2.32.3
 streamlit==1.39.0
 openpyxl
 urllib3
+seaborn
+matplotlib
 #python-dotenv

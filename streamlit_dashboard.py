@@ -132,6 +132,414 @@ def load_geojson():
     with open('india_states.geojson', 'r') as f:
         return json.load(f)
 
+# --- Helper Functions for Global Inflation Tab ---
+
+@st.cache_data(ttl=3600) # Cache data for 1 hour
+def load_inflation_data(file_path="inflation_long.csv"):
+    """Loads and preprocesses the global inflation data."""
+    try:
+        df = pd.read_csv(file_path)
+        df['Date'] = pd.to_datetime(df['Date'])
+        return df
+    except FileNotFoundError:
+        st.error(f"Error: Global inflation data file not found at {file_path}")
+        return None
+
+@st.cache_data(ttl=3600)
+def pivot_inflation_data(_df):
+    """Pivots the global inflation dataframe."""
+    if _df is None:
+        return None
+    df_pivot_full = _df.pivot(index='Country', columns='Date', values='Inflation')
+    df_pivot_full = df_pivot_full.sort_index(axis=1) # Sort columns by date
+    return df_pivot_full
+
+def normalize_row_inflation(row):
+    """Applies min-max normalization to a pandas Series (row for inflation)."""
+    min_val = row.min()
+    max_val = row.max()
+    denominator = max_val - min_val
+    if pd.isna(denominator) or denominator == 0:
+        return pd.Series(0.5 if denominator == 0 else np.nan, index=row.index)
+    else:
+        return (row - min_val) / denominator
+
+@st.cache_data(ttl=3600)
+def normalize_inflation_full_history(_df_pivot_full):
+    """Normalizes the pivoted inflation data row-wise based on full history."""
+    if _df_pivot_full is None:
+        return None
+    return _df_pivot_full.apply(normalize_row_inflation, axis=1)
+
+@st.cache_data(ttl=3600) # Cache data loading for 1 hour
+def load_spf_data(file_path="latest_spf_data.csv"):
+    """Loads the processed SPF data from a CSV file."""
+    try:
+        df = pd.read_csv(file_path)
+        # Attempt to convert relevant columns to datetime, ignore errors if already correct type
+        for col in ['last_update_time', 'forecast_date']:
+            if col in df.columns:
+                df[col] = pd.to_datetime(df[col], errors='coerce').dt.date
+        # Ensure 'value' is numeric
+        if 'value' in df.columns:
+             df['value'] = pd.to_numeric(df['value'], errors='coerce')
+        df = df.dropna(subset=['value']) # Drop rows where value conversion failed
+        return df
+    except FileNotFoundError:
+        st.error(f"Error: Data file not found at {file_path}")
+        return None
+    except Exception as e:
+        st.error(f"Error loading or processing data from {file_path}: {e}")
+        return None
+    
+
+# # --- Updated Plotting Function using Plotly Express ---
+def create_inflation_heatmap(df_normalized_subset, df_pivot_subset, start_date_str, end_date_str):
+    """Generates the inflation heatmap plot using Plotly Express."""
+    if df_normalized_subset is None or df_normalized_subset.empty:
+        st.warning(f"No global inflation data available for the selected period: {start_date_str} to {end_date_str}.")
+        return None
+
+    # --- Data Preparation ---
+    try:
+        # Get formatted dates for x-axis labels
+        x_labels = df_normalized_subset.columns.strftime('%b-%Y')
+        # Get country names for y-axis labels
+        y_labels = df_normalized_subset.index.tolist()
+        # Use normalized values for coloring
+        color_values = df_normalized_subset.values
+        # Get original values for text annotations
+        text_values_df = df_pivot_subset # Keep as DataFrame for easier iteration
+    except Exception as e:
+        st.error(f"Error preparing data for Plotly Express heatmap: {e}")
+        return None
+
+    # --- Create Plotly Express Heatmap ---
+    # Use normalized data for color mapping (zmin/zmax)
+    fig = px.imshow(
+        df_normalized_subset,       # Input data for structure and color mapping
+        x=x_labels,                 # Set x-axis labels explicitly
+        y=y_labels,                 # Set y-axis labels explicitly
+        color_continuous_scale='RdYlGn_r', # Red=High, Green=Low (reversed scale)
+        zmin=0,                     # Map colors based on 0-1 normalized range
+        zmax=1,
+        aspect="auto",              # Allow non-square cells based on figure size
+        text_auto=False             # Disable automatic text annotations from input data
+    )
+
+    # --- Customize Hover Information ---
+    fig.update_traces(
+        customdata=text_values_df.values, # Pass original values as customdata
+        hovertemplate="<b>Country:</b> %{y}<br>" +
+                      "<b>Date:</b> %{x}<br>" +
+                      "<b>Inflation:</b> %{customdata:.1f}%" + # Access original value from customdata
+                      "<extra></extra>" # Removes the trace name info
+    )
+
+    # --- Manually Add Annotations from Original Data ---
+    annotations = []
+    for r_idx, country in enumerate(y_labels):
+        for c_idx, date_label in enumerate(x_labels):
+            original_value = text_values_df.iloc[r_idx, c_idx]
+            if pd.notna(original_value): # Only add annotation if value exists
+                annotations.append(
+                    go.layout.Annotation(
+                        text=f"{original_value:.1f}", # Format original value
+                        x=date_label,          # Position based on date label
+                        y=country,             # Position based on country label
+                        xref='x',
+                        yref='y',
+                        showarrow=False,
+                        font=dict(size=10, color="black") # Adjust font size/color
+                    )
+                )
+
+    # --- Update Layout ---
+    fig.update_layout(
+        title=dict( # Use dict for more title options
+            text=f'Global Headline Inflation Heatmap',
+            x=0.5, # Center the title
+            xanchor='center' # Anchor title centrally
+        ),        
+        xaxis_side='bottom',             # Move dates (x-axis) to the top
+        xaxis_tickangle=-90,          # Rotate x-axis labels
+        yaxis_autorange='reversed',   # Display countries top-to-bottom
+        # --- Control Size ---
+        width=1200,                    # Set desired width (pixels)
+        height=700,                   # Set desired height (pixels)
+        margin=dict(l=50, r=50, t=50, b=50), # Adjust margins
+        annotations=annotations       # Add the manual annotations
+    )
+
+    # --- Customize Color Bar ---
+    fig.update_coloraxes(colorbar=dict(
+            title='',
+            titleside='right',
+            tickvals=[0.05, 0.95],     # Positions relative to 0-1
+            ticktext=['Low', 'High'],
+            lenmode='fraction',
+            len=0.75,
+            thickness=15
+        )
+    )
+
+
+    return fig
+
+def get_fy_quarter_label(date_obj):
+    """
+    Calculates the financial quarter (Q1-Q4) and year (YYYY-YY)
+    for a given date, assuming an April-March financial year.
+    """
+    if not isinstance(date_obj, (dt.date, pd.Timestamp)):
+         # Handle cases where date_obj might be NaT or None after conversion errors
+         return None, None
+
+    month = date_obj.month
+    year = date_obj.year
+    if 1 <= month <= 3: # Jan-Mar -> Q4 of previous FY
+        quarter = 4
+        fy_start = year - 1
+    elif 4 <= month <= 6: # Apr-Jun -> Q1
+        quarter = 1
+        fy_start = year
+    elif 7 <= month <= 9: # Jul-Sep -> Q2
+        quarter = 2
+        fy_start = year
+    elif 10 <= month <= 12: # Oct-Dec -> Q3
+        quarter = 3
+        fy_start = year
+    else: # Should not happen with valid date object
+        return None, None
+
+    fy_end_short = (fy_start + 1) % 100
+    fy_label = f"{fy_start}-{fy_end_short:02d}"
+    return quarter, fy_label
+
+def map_period_to_quarter_label(original_period, reference_date):
+    """
+    Maps generic period labels ('Current Quarter', 'Next Quarter', etc.)
+    to specific financial quarter labels ('QX:YYYY-YY') based on a reference date.
+    """
+    if reference_date is None:
+        return original_period # Cannot map without reference date
+
+    # Get the month *before* the reference date
+    try:
+        # Ensure reference_date is a suitable type for offset calculation
+        if isinstance(reference_date, dt.date) and not isinstance(reference_date, dt.datetime):
+             reference_date_ts = pd.Timestamp(reference_date)
+        else:
+             reference_date_ts = reference_date
+
+        prev_month_date = reference_date_ts - pd.DateOffset(months=1)
+    except Exception as e:
+         # Handle potential errors if reference_date is not date-like
+         # print(f"Debug: Error calculating previous month from {reference_date}: {e}")
+         return original_period
+
+
+    # Get the starting quarter and FY label based on the previous month
+    start_quarter, start_fy = get_fy_quarter_label(prev_month_date)
+    if start_quarter is None: # Handle error from get_fy_quarter_label
+         return original_period
+
+    # Determine quarter offset based on the original period label
+    offset_map = {
+        "Current Quarter": 0,
+        "Next Quarter": 1,
+        "Next 2 Quarters": 2,
+        "Next 3 Quarters": 3,
+        "Next 4 Quarters": 4
+    }
+    offset = offset_map.get(original_period)
+    if offset is None:
+        return original_period # Return original if not a recognized period label
+
+    # Calculate target quarter number (1-based) and year adjustments
+    current_quarter_num_zero_based = start_quarter - 1 # Convert start quarter to 0-based index (0-3)
+    target_quarter_num_zero_based = current_quarter_num_zero_based + offset
+    year_offset = target_quarter_num_zero_based // 4 # How many full years to advance
+    final_quarter = (target_quarter_num_zero_based % 4) + 1 # Target quarter number (1-4)
+
+    # Calculate target financial year start based on the initial FY start year
+    try:
+        start_fy_year = int(start_fy.split('-')[0])
+        target_fy_start = start_fy_year + year_offset
+        target_fy_end_short = (target_fy_start + 1) % 100
+        target_fy_label = f"{target_fy_start}-{target_fy_end_short:02d}"
+    except Exception as e:
+         # Handle potential errors parsing start_fy
+         # print(f"Debug: Error calculating target FY label from {start_fy}: {e}")
+         return original_period
+
+
+    return f"Q{final_quarter}:{target_fy_label}"
+
+def render_spf_expectations_tab(csv_path="latest_spf_data.csv"):
+    """
+    Renders the SPF Inflation Expectations tab content within a Streamlit app.
+
+    Args:
+        csv_path (str): The path to the processed SPF data CSV file.
+                        Assumes columns: 'value', 'last_update_time', 'forecast_date',
+                        'type', 'indicator', 'period'.
+    """
+
+    st.header("Survey of Professional Forecasters")
+    st.subheader("CPI Inflation Expectations")
+
+    # --- Load Data ---
+    df = load_spf_data(csv_path)
+
+    if df is None:
+        st.warning("Could not load SPF data. Please ensure 'latest_spf_data.csv' exists and is correctly formatted.")
+        return # Stop execution for this tab if data loading fails
+
+    # --- Optional Raw Data Display ---
+    if st.checkbox("Show Loaded SPF Data", key="show_spf_raw"):
+        st.dataframe(df)
+
+    # --- Select Plot Type ---
+    selected_type = st.radio(
+        "Select Forecast Horizon:",
+        ('Quarterly', 'Annual'),
+        key="spf_type_select",
+        horizontal=True # Display options side-by-side
+    )
+
+    # --- Filter Data Based on Selection ---
+    df_filtered = df[df['type'] == selected_type].copy()
+
+    # --- Get Common Update Time (Reference Date) ---
+    common_last_update_time = None
+    if not df_filtered.empty and 'last_update_time' in df_filtered.columns:
+         valid_update_times = df_filtered['last_update_time'].dropna()
+         if not valid_update_times.empty:
+              common_last_update_time = valid_update_times.max() # Use the latest date as reference
+
+
+    # --- Prepare and Plot Based on Selection ---
+    fig = None # Initialize fig to None
+    if selected_type == 'Quarterly':
+        # --- Prepare Quarterly Data ---
+        period_order = [
+            "Current Quarter", "Next Quarter", "Next 2 Quarters",
+            "Next 3 Quarters"#, "Next 4 Quarters"
+        ]
+        # Filter out periods not in the defined order first
+        df_filtered = df_filtered[df_filtered['period'].isin(period_order)].copy() # Use copy after filtering
+
+        if not df_filtered.empty:
+            # Apply the mapping to get formatted labels
+            if common_last_update_time:
+                 df_filtered['formatted_period'] = df_filtered['period'].apply(
+                     lambda p: map_period_to_quarter_label(p, common_last_update_time)
+                 )
+            else:
+                 # Fallback if no reference date is found
+                 st.warning("Could not determine the reference date ('last_update_time'). Using generic period labels.")
+                 df_filtered['formatted_period'] = df_filtered['period']
+
+            # Use original 'period' for logical sorting via categorical type
+            df_filtered['period'] = pd.Categorical(
+                df_filtered['period'], categories=period_order, ordered=True
+            )
+            df_filtered = df_filtered.sort_values(by=['indicator', 'period'])
+
+            # --- Plot Quarterly Data ---
+            plot_title = "Quarterly Inflation Expectations Trajectory"
+            if common_last_update_time:
+                plot_title += f" (as of policy dated {common_last_update_time.strftime('%B %d, %Y')})"
+
+            fig = px.line(
+                df_filtered,
+                x='formatted_period', # Use the new formatted labels for the x-axis display
+                y='value',
+                color='indicator',
+                markers=True,
+                text='value',
+                labels={
+                    'formatted_period': 'Forecast Period', # Update label
+                    'value': 'Median Inflation Expectation (Y-o-Y)',
+                    'indicator': 'Indicator Type'
+                },
+                title=plot_title
+            )
+            fig.update_layout(
+                legend_title_text='Indicator',
+                # Ensure x-axis ticks match the data points even if categorical mapping isn't perfect
+                xaxis=dict(type='category'), # Treat x-axis as categorical based on the formatted labels
+                yaxis=dict(ticksuffix='%')
+            )
+
+                # Adjust how the text labels appear
+            fig.update_traces(
+            textposition="top center",      # <-- Position the labels nicely
+            texttemplate='%{text:.1f}'     # <-- Format: 2 decimal points + '%' sign
+            )
+            # Optional: Explicitly set tick labels if needed, though usually Plotly handles it
+            # fig.update_xaxes(tickvals=df_filtered['formatted_period'].unique(), ticktext=df_filtered['formatted_period'].unique())
+
+
+    elif selected_type == 'Annual':
+        # --- Prepare Annual Data ---
+        period_order_annual = [
+            "Current Fiscal Year",
+            "Next Fiscal Year"
+        ]
+        # Filter out periods not in the defined order
+        df_filtered = df_filtered[df_filtered['period'].isin(period_order_annual)].copy() # Use copy
+
+        if not df_filtered.empty:
+            df_filtered['period'] = pd.Categorical(
+                df_filtered['period'], categories=period_order_annual, ordered=True
+            )
+            df_filtered = df_filtered.sort_values(by=['indicator', 'period'])
+
+            # --- Plot Annual Data ---
+            plot_title = "Annual Inflation Expectations"
+            if common_last_update_time:
+                plot_title += f" (as of policy dated {common_last_update_time.strftime('%B %d, %Y')})"
+
+            fig = px.bar(
+                df_filtered, x='period', y='value', color='indicator',
+                barmode='group',
+                labels={
+                    'period': 'Fiscal Year',
+                    'value': 'Median Inflation Expectation (Y-o-Y)',
+                    'indicator': 'Indicator Type'
+                },
+                title=plot_title,
+                text_auto='.1f'
+            )
+            fig.update_traces(textposition='outside')
+            fig.update_layout(
+                 legend_title_text='Indicator',
+                 yaxis=dict(ticksuffix='%')
+            )
+
+    # --- Display Plot ---
+    if fig is not None:
+        st.plotly_chart(fig, use_container_width=True)
+        # Optionally display the data table used for the plot
+        if st.checkbox(f"Show Filtered {selected_type} Data Table", key=f"show_spf_{selected_type.lower()}_table"):
+             display_cols = ['indicator', 'period', 'formatted_period' if selected_type == 'Quarterly' else 'period', 'value', 'forecast_date', 'last_update_time']
+             display_cols = [col for col in display_cols if col in df_filtered.columns] # Ensure columns exist
+             st.dataframe(df_filtered[display_cols])
+
+    elif not df.empty and df_filtered.empty:
+         # This means data was loaded, but filtering resulted in empty dataframe
+         st.info(f"No {selected_type.lower()} data found matching the expected period labels (e.g., 'Current Quarter', 'Next Fiscal Year') in the loaded file.")
+    elif df.empty:
+         # This case handled by the initial load check, but added for completeness
+         pass
+    else:
+         # Generic case if fig is None but df_filtered wasn't technically empty (e.g., error during plotting)
+         st.info(f"Could not generate plot for {selected_type.lower()} data.")
+
+
+
 # if check_password():
 # List of crops
 list_of_crops = ['Rice', 'Wheat', 'Maize', 'Barley', 'Jowar', 'Bajra', 'Ragi', 'Small Millets', 
@@ -195,10 +603,15 @@ with col4:
 #                                   "Arrivals and Wholesale Prices",
 #                                   "Daily Arrivals"])
 
-tab1, tab2, tab3, tab5 = st.tabs(["DCA Retail Price Trends", 
-                                  "Rainfall Deviation", 
-                                  "Food Production Trends",
-                                  "Daily Mandi Arrivals"])
+# --- Define Tabs ---
+tab1, tab2, tab3, tab4, tab_global_inflation, tab_spf_plot = st.tabs([
+    "DCA Retail Price Trends",
+    "Rainfall Deviation",
+    "Food Production Trends",
+    "Daily Mandi Arrivals",
+    "Global Inflation",
+    "SPF Forecasts"
+])
 
 with tab1:
     st.header("DCA Retail Price Trends")
@@ -455,6 +868,7 @@ with tab3:
                     plot_data, 
                     x='Year', 
                     y='YoY_Change',
+                    text='YoY_Change',
                     title=f'Y-o-Y change (%) in production of {selected_crop} ({selected_season})',
                     labels={'YoY_Change': 'Y-o-Y Change (%)'},
                     height=600
@@ -594,35 +1008,35 @@ with tab3:
     #     fig1.update_layout(yaxis2=dict(title='Area (hectares)', overlaying='y', side='right', showgrid=False))
     #     st.plotly_chart(fig1, use_container_width=True)
 
-with plot_col1:
-    # Get the sorted list of crops
-    sorted_crops = sorted(horti_long['Crops'].unique())
-    # Find the index of 'onion' in the sorted list
-    default_index = sorted_crops.index('Onion')
-    
-    selected_crop = st.selectbox('Select a crop', 
-                                options=sorted_crops,
-                                index=default_index)
-    filtered_df = horti_long[horti_long['Crops'] == selected_crop].sort_values(by='Year')
+    with plot_col1:
+        # Get the sorted list of crops
+        sorted_crops = sorted(horti_long['Crops'].unique())
+        # Find the index of 'onion' in the sorted list
+        default_index = sorted_crops.index('Onion')
+        
+        selected_crop = st.selectbox('Select a crop', 
+                                    options=sorted_crops,
+                                    index=default_index)
+        filtered_df = horti_long[horti_long['Crops'] == selected_crop].sort_values(by='Year')
 
-    fig1 = px.bar(filtered_df, x='Year', y='Production_in_tonnes', 
-                title=f'Production Trend for {selected_crop}',
-                labels = {'Year': 'Year', 'Production_in_tonnes': "Production (in tonnes)"})
+        fig1 = px.bar(filtered_df, x='Year', y='Production_in_tonnes', 
+                    title=f'Production Trend for {selected_crop}',
+                    labels = {'Year': 'Year', 'Production_in_tonnes': "Production (in tonnes)"})
 
-    fig1.add_scatter(x=filtered_df['Year'], y=filtered_df['Area'], 
-                    mode='lines+markers', name='Area (RHS)', yaxis='y2')
+        fig1.add_scatter(x=filtered_df['Year'], y=filtered_df['Area'], 
+                        mode='lines+markers', name='Area (RHS)', yaxis='y2')
 
-    fig1.update_layout(
-        yaxis2=dict(title='Area (hectares)', overlaying='y', side='right', showgrid=False),
-        legend=dict(
-            yanchor="top",
-            y=1.09,
-            xanchor="right",
-            x=0.99
+        fig1.update_layout(
+            yaxis2=dict(title='Area (hectares)', overlaying='y', side='right', showgrid=False),
+            legend=dict(
+                yanchor="top",
+                y=1.09,
+                xanchor="right",
+                x=0.99
+            )
         )
-    )
 
-    st.plotly_chart(fig1, use_container_width=True)
+        st.plotly_chart(fig1, use_container_width=True)
 
     with plot_col2:
         filtered_df['YoY_Change'] = filtered_df['Production_in_tonnes'].pct_change() * 100
@@ -682,7 +1096,7 @@ with plot_col1:
 
 from plotly import graph_objs as go
 
-with tab5:
+with tab4:
     # Load data
     data = load_daily_arrival_data()
     if data is not None:
@@ -912,6 +1326,109 @@ with tab5:
     st.dataframe(yoy_df_sorted.reset_index(drop=True))
 
     st.write("Source: https://agmarknet.gov.in/")
+
+# --- Tab: Global Inflation (NEW) ---
+with tab_global_inflation:
+    st.header("Monthly Headline Inflation Rates")
+    st.subheader("CPI Y-o-Y (%)")
+    # st.markdown("""
+    #     This heatmap visualizes inflation rates over time for various countries.
+    #     - **Colors:** Scaled within each country based on its *entire* historical data (Green=Low, Red=High).
+    #     - **Labels:** Show the actual inflation value for the specific month.
+    #     Use the date pickers below to select the desired time period for display.
+    # """)
+
+    # --- Load Global Inflation Data ---
+    # Use the specific loading function defined earlier
+    df_inflation = load_inflation_data(file_path="inflation_long.csv") # Ensure path is correct
+
+    if df_inflation is not None:
+        # --- Process Global Inflation Data ---
+        df_pivot_inflation_full = pivot_inflation_data(df_inflation)
+        df_normalized_inflation_full = normalize_inflation_full_history(df_pivot_inflation_full)
+
+        if df_pivot_inflation_full is not None and df_normalized_inflation_full is not None:
+            min_date_inflation = df_inflation['Date'].min().date()
+            max_date_inflation = df_inflation['Date'].max().date()
+
+            # Calculate default start date (15 months ago including the start month)
+            default_start_date_inf = (pd.to_datetime(max_date_inflation) - pd.DateOffset(months=14)).date()
+            # Ensure default start date is not before min_date
+            default_start_date_inf = max(min_date_inflation, default_start_date_inf)
+
+            # --- Date Selection UI ---
+            col1_inf, col2_inf = st.columns(2)
+            with col1_inf:
+                selected_start_date_inf = st.date_input(
+                    "Start date",
+                    value=default_start_date_inf,
+                    min_value=min_date_inflation,
+                    max_value=max_date_inflation,
+                    key="heatmap_start_date" # Unique key
+                )
+            with col2_inf:
+                selected_end_date_inf = st.date_input(
+                    "End date",
+                    value=max_date_inflation,
+                    min_value=min_date_inflation,
+                    max_value=max_date_inflation,
+                    key="heatmap_end_date" # Unique key
+                )
+
+            # --- Filtering and Plotting ---
+            if selected_start_date_inf > selected_end_date_inf:
+                st.error("Error: End date must fall after start date.")
+            else:
+                start_timestamp_inf = pd.to_datetime(selected_start_date_inf)
+                end_timestamp_inf = pd.to_datetime(selected_end_date_inf)
+
+                # Filter columns based on selected date range
+                valid_cols_inf = (df_pivot_inflation_full.columns >= start_timestamp_inf) & (df_pivot_inflation_full.columns <= end_timestamp_inf)
+                date_columns_to_display_inf = df_pivot_inflation_full.columns[valid_cols_inf]
+
+                if date_columns_to_display_inf.empty:
+                    st.warning(f"No global inflation data available for the selected period: {selected_start_date_inf.strftime('%Y-%m-%d')} to {selected_end_date_inf.strftime('%Y-%m-%d')}.")
+                else:
+                    # Select the subset period from BOTH normalized and original pivoted data
+                    df_normalized_subset_inf = df_normalized_inflation_full[date_columns_to_display_inf]
+                    df_pivot_subset_inf = df_pivot_inflation_full[date_columns_to_display_inf] # For annotations
+
+                    # Handle potential all-NaN rows/columns introduced by subsetting/normalization
+                    df_normalized_subset_inf = df_normalized_subset_inf.dropna(axis=0, how='all').dropna(axis=1, how='all')
+                    if not df_normalized_subset_inf.empty:
+                         df_pivot_subset_inf = df_pivot_subset_inf.reindex_like(df_normalized_subset_inf) # Align annotation data
+                    else:
+                         df_pivot_subset_inf = pd.DataFrame() # Assign empty if subset becomes empty
+
+                    # Generate and display the plot
+                    heatmap_fig = create_inflation_heatmap(
+                        df_normalized_subset_inf,
+                        df_pivot_subset_inf,
+                        selected_start_date_inf.strftime('%Y-%m-%d'),
+                        selected_end_date_inf.strftime('%Y-%m-%d')
+                    )
+
+                    if heatmap_fig:
+                        st.plotly_chart(heatmap_fig) # Use st.pyplot for matplotlib figures
+        else:
+            st.error("Failed to process global inflation data for heatmap.")
+    else:
+        # Error message already shown by load_inflation_data
+        st.warning("Skipping Global Inflation tab content.")
+    
+    df_to_display = df_pivot_subset_inf.T.round(2)
+    df_to_display.index = pd.to_datetime(df_to_display.index)
+    df_to_display.index = df_to_display.index.strftime("%b-%Y")
+    
+    if st.checkbox("📊 Show Selected Data"):
+        st.subheader("Global Headline Inflation Data")
+        st.dataframe(df_to_display)
+    
+    st.markdown("Data Source: CEIC")
+
+with tab_spf_plot:
+    render_spf_expectations_tab(csv_path="latest_spf_data.csv") 
+
 
 # st.markdown("""
 #     <p style="font-size: 14px;">

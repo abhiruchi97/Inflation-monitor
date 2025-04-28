@@ -10,7 +10,8 @@ import requests
 from bs4 import BeautifulSoup
 import re
 from functools import lru_cache
-from utils.helper import *
+import seaborn as sns
+import matplotlib.pyplot as plt
 from typing import Tuple, Optional
 from dataclasses import dataclass
 from typing import Dict, List
@@ -594,3 +595,49 @@ def fetch_major_producers(commodity):
         return None
 
 
+def create_heatmap(df_normalized_subset, df_pivot_subset, start_date_str, end_date_str):
+    """Generates the heatmap plot."""
+    if df_normalized_subset.empty:
+        st.warning(f"No data available for the selected period: {start_date_str} to {end_date_str}.")
+        return None
+
+    # Format date columns for display AFTER subsetting
+    display_columns_formatted = df_normalized_subset.columns.strftime('%b-%Y')
+    df_normalized_subset.columns = display_columns_formatted
+    df_pivot_subset.columns = display_columns_formatted # Match annotation data columns
+
+    # Create the heatmap figure
+    fig, ax = plt.subplots(figsize=(10, 10)) # Adjust size dynamically
+
+    sns.heatmap(
+        df_normalized_subset,        # Use normalized data (full history based) for colors
+        annot=df_pivot_subset,       # Use original data for cell text
+        fmt=".1f",                   # Format annotation text
+        cmap="RdYlGn_r",             # Red=High, Green=Low
+        linewidths=.5,
+        linecolor='lightgray',
+        cbar=True,                   # Show the color bar
+        cbar_kws={'shrink': 0.5},    # Adjust color bar size if needed
+        ax=ax                        # Plot on the created axes
+        # vmin=0, vmax=1             # Optional: Enforce 0-1 scaling strictly
+    )
+
+    # Customize the Color Bar
+    cbar = ax.collections[0].colorbar
+    # Use positions relative to the actual plotted data range in the subset for robustness
+    # Or stick to 0-1 if vmin/vmax enforced
+    cbar.set_ticks([0.05, 0.95]) # Position ticks slightly inwards from theoretical min/max
+    cbar.set_ticklabels(['Low', 'High']) # Set text labels
+    cbar.set_label('Relative Inflation (within Country\'s Full History)', rotation=270, labelpad=20)
+
+    # Position and Format Axes
+    ax.xaxis.tick_top()
+    ax.xaxis.set_label_position('top')
+    ax.set_title(f'Inflation Rate Heatmap ({start_date_str} to {end_date_str})\n(Colors Based on Full History per Country, Labels = Actual Values)')
+    ax.set_xlabel('Date')
+    ax.set_ylabel('Country')
+    plt.setp(ax.get_xticklabels(), rotation=45, ha='left') # Adjust rotation/alignment
+    plt.setp(ax.get_yticklabels(), rotation=0)
+    fig.tight_layout() # Adjust layout
+
+    return fig
