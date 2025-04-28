@@ -388,6 +388,7 @@ def render_spf_expectations_tab(csv_path="latest_spf_data.csv"):
 
     st.header("Survey of Professional Forecasters")
     st.subheader("CPI Inflation Expectations")
+    st.markdown("Data pertains to forecasts released at the latest policy meeting, for the current quarter and 3 quarters ahead.")
 
     # --- Load Data ---
     df = load_spf_data(csv_path)
@@ -396,9 +397,9 @@ def render_spf_expectations_tab(csv_path="latest_spf_data.csv"):
         st.warning("Could not load SPF data. Please ensure 'latest_spf_data.csv' exists and is correctly formatted.")
         return # Stop execution for this tab if data loading fails
 
-    # --- Optional Raw Data Display ---
-    if st.checkbox("Show Loaded SPF Data", key="show_spf_raw"):
-        st.dataframe(df)
+    # # --- Optional Raw Data Display ---
+    # if st.checkbox("📊 Show loaded SPF data", key="show_spf_raw"):
+    #     st.dataframe(df)
 
     # --- Select Plot Type ---
     selected_type = st.radio(
@@ -522,11 +523,13 @@ def render_spf_expectations_tab(csv_path="latest_spf_data.csv"):
     # --- Display Plot ---
     if fig is not None:
         st.plotly_chart(fig, use_container_width=True)
-        # Optionally display the data table used for the plot
-        if st.checkbox(f"Show Filtered {selected_type} Data Table", key=f"show_spf_{selected_type.lower()}_table"):
-             display_cols = ['indicator', 'period', 'formatted_period' if selected_type == 'Quarterly' else 'period', 'value', 'forecast_date', 'last_update_time']
-             display_cols = [col for col in display_cols if col in df_filtered.columns] # Ensure columns exist
-             st.dataframe(df_filtered[display_cols])
+        
+        # Display data table only for Quarterly
+        if selected_type == 'Quarterly':
+            if st.checkbox(f"📈 Show {selected_type} data table", key=f"show_spf_{selected_type.lower()}_table"):
+                display_cols = ['indicator', 'period', 'formatted_period', 'value', 'last_update_time']
+                display_cols = [col for col in display_cols if col in df_filtered.columns]  # Ensure columns exist
+                st.dataframe(df_filtered[display_cols])
 
     elif not df.empty and df_filtered.empty:
          # This means data was loaded, but filtering resulted in empty dataframe
@@ -538,7 +541,10 @@ def render_spf_expectations_tab(csv_path="latest_spf_data.csv"):
          # Generic case if fig is None but df_filtered wasn't technically empty (e.g., error during plotting)
          st.info(f"Could not generate plot for {selected_type.lower()} data.")
 
-
+    # --- Optional Raw Data Display ---
+    if st.checkbox("📊 Show loaded SPF data", key="show_spf_raw"):
+        st.dataframe(df)
+    
 
 # if check_password():
 # List of crops
@@ -1147,14 +1153,6 @@ with tab4:
         (data['Date'] <= pd.to_datetime(end_date))
     ]
 
-    # Checkbox to toggle display of filtered data
-    show_data = st.checkbox("Show Filtered Data")
-
-    # Display filtered data if checkbox is checked
-    if show_data:
-        st.subheader("Filtered Data")
-        st.write(data[(data['Commodity'] == selected_commodity)])
-
     # Create two columns for the charts
     col1, col2 = st.columns(2)
 
@@ -1315,6 +1313,18 @@ with tab4:
                 'YoY Change (%)': None
             })
 
+    # Checkbox to toggle display of filtered data
+    show_data = st.checkbox("📊 Show time series data")
+
+    # Display filtered data if checkbox is checked
+    if show_data:
+        st.subheader("Filtered Data")
+
+        # display_data = filtered_data.copy()
+        # display_data['Date'] = pd.to_datetime(display_data['Date']).dt.strftime('%d-%m-%Y')
+        # st.write(display_data) 
+        st.write(data[(data['Commodity'] == selected_commodity)])
+
     # Convert to dataframe
     yoy_df = pd.DataFrame(commodity_yoy_list)
 
@@ -1420,7 +1430,7 @@ with tab_global_inflation:
     df_to_display.index = pd.to_datetime(df_to_display.index)
     df_to_display.index = df_to_display.index.strftime("%b-%Y")
     
-    if st.checkbox("📊 Show Selected Data"):
+    if st.checkbox("📊 Show selected data"):
         st.subheader("Global Headline Inflation Data")
         st.dataframe(df_to_display)
     
@@ -1429,6 +1439,7 @@ with tab_global_inflation:
 with tab_spf_plot:
     render_spf_expectations_tab(csv_path="latest_spf_data.csv") 
 
+    st.markdown("Data Source: CEIC")
 
 # st.markdown("""
 #     <p style="font-size: 14px;">
