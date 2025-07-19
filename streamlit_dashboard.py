@@ -91,7 +91,7 @@ def load_dca_data():
 # Load and preprocess production data (Cached function)
 @st.cache_data
 def load_production_data():
-    agri_prod = pd.read_excel('dca_data_1.xlsx', sheet_name='test')
+    agri_prod = pd.read_excel('dca_data.xlsx', sheet_name='test')
     agri_prod['Crop'] = agri_prod['Crop'].fillna(method='ffill')
     
     # Convert the Year columns to a consistent format
