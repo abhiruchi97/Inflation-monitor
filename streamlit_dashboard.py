@@ -111,7 +111,7 @@ def load_production_data():
 # Load and preprocess horticulture data
 @st.cache_data
 def load_horticulture_data():
-    horti_df = pd.read_excel('dca_data_1.xlsx', sheet_name='horti', header=[0, 1], index_col=[0])
+    horti_df = pd.read_excel('dca_data.xlsx', sheet_name='horti', header=[0, 1], index_col=[0])
     horti_df = horti_df.reset_index()
     horti_df.columns = [f"{col[0]}_{col[1]}" if isinstance(col, tuple) else col for col in horti_df.columns]
 
@@ -120,7 +120,7 @@ def load_horticulture_data():
     horti_long[['Year', 'Metric']] = horti_long['Year_Metric'].str.rsplit('_', n=1, expand=True)
     horti_long = horti_long.pivot_table(values='Value', index=[crops_col, 'Year'], columns='Metric', aggfunc='first').reset_index()
     horti_long = horti_long.rename(columns={crops_col: 'Crops', 'Area': 'Area_in_hectares', 'Production': 'Production_in_tonnes'})
-    horti_long = horti_long[~horti_long['Crops'].isin(["Fruits", 'Citrus', 'Vegetables'])]
+    horti_long = horti_long[~horti_long['Crops'].isin(["Fruits", 'Citrus', 'Vegetables','Spices'])]
     horti_long['Year'] = horti_long['Year'].apply(lambda x: x.strip()[:2] + x.strip()[-2:])
     horti_long.columns = ['Crops', 'Year', 'Area', 'Production_in_tonnes']
     
