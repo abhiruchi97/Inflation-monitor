@@ -646,7 +646,7 @@ with tab1:
         normalize = st.checkbox("Normalize prices to 100")
         # ... rest of the code remains the same ...
 
-        start_date = st.date_input("Start date", value=three_months_ago, min_value=min_date, max_value=max_date)
+        start_date = start_date = st.date_input("Start date",value=max(min(three_months_ago, max_date), min_date),min_value=min_date,max_value=max_date)
         end_date = st.date_input("End date", value=max_date, min_value=min_date, max_value=max_date)
 
         if start_date < three_months_ago.date():
