@@ -74,10 +74,12 @@ def load_dca_data():
 
     df_long = df.reset_index().melt(
         id_vars=['index'],
-        value_vars=['Rice', 'Wheat', 'Atta(wheat)', 'Gram Dal', 'Tur/Arhar Dal', 'Urad Dal',
-                    'Moong Dal', 'Masoor Dal', 'Ground Nut Oil', 'Mustard Oil', 'Vanaspati',
-                    'Soya Oil', 'Sunflower Oil', 'Palm Oil', 'Potato', 'Onion', 'Tomato',
-                    'Sugar', 'Gur', 'Milk', 'Tea', 'Salt'],
+        value_vars=[
+    'Atta (Wheat)', 'Bajra (whole)', 'Banana', 'Besan', 'Black Pepper (whole)', 'Brinjal', 'Butter (Pasteurised)', 'Coriander (whole)',
+            'Cummin Seed (whole)','Desi Ghee','Eggs','Garlic','Ginger','Gram Dal','Groundnut Oil (Packed)','Gur','Jowar (whole)','Maida (wheat)',
+            'Masoor Dal','Milk @','Moong Dal','Mustard Oil (Packed)','Onion','Palm Oil (Packed)','Potato','Ragi (whole)','Red Chillies (whole)',
+            'Rice','Salt Pack (Iodised)','Soya Oil (Packed)','Sugar','Suji (whole)','Sunflower Oil (Packed)','Tea Loose','Tomato','Tur/Arhar Dal',
+            'Turmeric (powder)','Urad Dal', 'Vanaspati (Packed)', 'Wheat'],
         var_name='Commodity',
         value_name='Price'
     )
